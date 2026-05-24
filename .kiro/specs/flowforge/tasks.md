@@ -36,6 +36,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Implementasikan validator Zod untuk setiap struktur dengan rule pada Validation Rules (`tenant.slug`, `email`, `max_attempts`, `timeout_sec`, dll.)
     - _Requirements: 1.9, 4.6, 9.3_
   - [ ] 2.2 Implementasikan migration runner dan schema awal PostgreSQL
+    - [x] Setup `node-pg-migrate` di root, tambahkan script `migrate`, `migrate:up`, `migrate:down`, `migrate:create`, dan dokumentasi `migrations/README.md`
     - Pakai `node-pg-migrate` atau setara; tulis migration `001_init` membuat tabel `tenants`, `users`, `workflows`, `workflow_versions`, `runs`, `step_runs`, `schedules`, `audit_logs` sesuai ER di design
     - Tambahkan constraint `NOT NULL` pada seluruh kolom `tenant_id`, plus FK + unique constraint (`tenants.slug` global, `users(tenant_id, email)`)
     - Tulis migration `002_indexes` dengan critical indexes: `idx_runs_tenant_started`, `idx_step_runs_run`, `idx_schedules_due`, `idx_workflow_versions_wf`, `idx_workflows_tenant_updated`
