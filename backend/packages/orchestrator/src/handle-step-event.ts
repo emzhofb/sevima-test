@@ -1,6 +1,7 @@
 import { computeReadySet } from '@flowforge/parser';
-import { withTransaction, publishEvent } from '@flowforge/shared';
+import { withTransaction, publishEvent, activeRuns, runsTotal } from '@flowforge/shared';
 import type { Db, DbClient, Broker } from '@flowforge/shared';
+import { transitionStepRunStatus } from '@flowforge/api';
 
 export type StepEvent = {
   event_id: string; // unique, used for dedup
@@ -48,11 +49,9 @@ export async function handleStepEvent(db: Db, broker: Broker, event: StepEvent):
 
     // Update step_run status
     if (event.type === 'STEP_SUCCEEDED') {
-      await client.query(
-        `UPDATE step_runs SET status = 'SUCCEEDED', output = $1, finished_at = now()
-         WHERE run_id = $2 AND step_id = $3`,
-        [event.output ?? null, event.run_id, event.step_id],
-      );
+      await transitionStepRunStatus(client, event.run_id, event.step_id, 'SUCCEEDED', {
+        output: event.output ?? null,
+      });
       if (redis) {
         await publishEvent(redis, {
           tenant_id: run.tenant_id,
@@ -65,11 +64,9 @@ export async function handleStepEvent(db: Db, broker: Broker, event: StepEvent):
       }
     } else {
       // STEP_FAILED
-      await client.query(
-        `UPDATE step_runs SET status = 'FAILED', error = $1, finished_at = now()
-         WHERE run_id = $2 AND step_id = $3`,
-        [event.error ?? null, event.run_id, event.step_id],
-      );
+      await transitionStepRunStatus(client, event.run_id, event.step_id, 'FAILED', {
+        error: event.error ?? null,
+      });
       if (redis) {
         await publishEvent(redis, {
           tenant_id: run.tenant_id,
@@ -87,6 +84,9 @@ export async function handleStepEvent(db: Db, broker: Broker, event: StepEvent):
       await client.query(`UPDATE runs SET status = 'FAILED', finished_at = now() WHERE id = $1`, [
         event.run_id,
       ]);
+      activeRuns.dec();
+      runsTotal.inc({ status: 'FAILED', trigger_type: run.trigger_type });
+
       if (redis) {
         await publishEvent(redis, {
           tenant_id: run.tenant_id,
@@ -116,6 +116,9 @@ export async function handleStepEvent(db: Db, broker: Broker, event: StepEvent):
         `UPDATE runs SET status = 'SUCCEEDED', finished_at = now() WHERE id = $1`,
         [event.run_id],
       );
+      activeRuns.dec();
+      runsTotal.inc({ status: 'SUCCEEDED', trigger_type: run.trigger_type });
+
       if (redis) {
         await publishEvent(redis, {
           tenant_id: run.tenant_id,

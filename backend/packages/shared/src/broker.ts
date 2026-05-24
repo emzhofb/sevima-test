@@ -7,6 +7,8 @@ export type BrokerMessage = {
 
 export interface Broker {
   enqueue(stream: string, payload: Record<string, string>): Promise<string>;
+  enqueueDelayed(stream: string, payload: Record<string, string>, delayMs: number): Promise<void>;
+  pollDelayed(): Promise<number>;
   dequeue(
     stream: string,
     group: string,
@@ -26,6 +28,31 @@ export class RedisStreamBroker implements Broker {
       args.push(k, v);
     }
     return (await this.redis.xadd(stream, '*', ...args)) as string;
+  }
+
+  async enqueueDelayed(stream: string, payload: Record<string, string>, delayMs: number): Promise<void> {
+    const runAt = Date.now() + delayMs;
+    const member = JSON.stringify({ stream, payload });
+    await this.redis.zadd('flowforge:delayed:messages', runAt, member);
+  }
+
+  async pollDelayed(): Promise<number> {
+    const now = Date.now();
+    const members = await this.redis.zrangebyscore('flowforge:delayed:messages', 0, now, 'LIMIT', 0, 100);
+    let enqueuedCount = 0;
+    for (const member of members) {
+      const removed = await this.redis.zrem('flowforge:delayed:messages', member);
+      if (removed === 1) {
+        try {
+          const { stream, payload } = JSON.parse(member);
+          await this.enqueue(stream, payload);
+          enqueuedCount++;
+        } catch {
+          // ignore malformed payloads
+        }
+      }
+    }
+    return enqueuedCount;
   }
 
   async ensureGroup(stream: string, group: string): Promise<void> {

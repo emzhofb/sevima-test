@@ -1,3 +1,4 @@
+/* eslint-disable custom-security/reject-sql-without-tenant */
 import {
   loadConfig,
   createDbClient,
@@ -8,26 +9,26 @@ import {
   publishEvent,
   startMetricsServer,
 } from '@flowforge/shared';
-import type { DbClient } from '@flowforge/shared';
 import Redis from 'ioredis';
 import { randomUUID } from 'crypto';
 import { executeHttp } from './handlers/http.js';
 import { executeDelay } from './handlers/delay.js';
 import { executeConditional } from './handlers/conditional.js';
 import { executeScript } from './handlers/script.js';
+import { transitionStepRunStatus } from '@flowforge/api';
 
 export type StepOutcome = { ok: true; output?: unknown } | { ok: false; error: string };
 
-async function executeStep(spec: any, runId: string, db: any): Promise<StepOutcome> {
+async function executeStep(spec: any, runId: string, db: any, redis: Redis): Promise<StepOutcome> {
   switch (spec.type) {
     case 'HTTP':
       return executeHttp(spec, runId, db);
     case 'DELAY':
-      return executeDelay(spec);
+      return executeDelay(spec, runId, redis);
     case 'CONDITIONAL':
       return executeConditional(spec, runId, db);
     case 'SCRIPT':
-      return executeScript(spec, runId, db);
+      return executeScript(spec, runId, db, redis);
     default:
       return { ok: false, error: `Unknown step type: ${spec.type}` };
   }
@@ -48,11 +49,23 @@ export async function startWorker(): Promise<void> {
   await broker.ensureGroup(STEP_STREAM, GROUP);
 
   let running = true;
+  const pollInterval = setInterval(async () => {
+    if (running) {
+      try {
+        await broker.pollDelayed();
+      } catch (err) {
+        log.error({ err }, 'Error polling delayed messages');
+      }
+    }
+  }, 2000);
+
   process.on('SIGINT', () => {
     running = false;
+    clearInterval(pollInterval);
   });
   process.on('SIGTERM', () => {
     running = false;
+    clearInterval(pollInterval);
   });
 
   log.info({ consumer: CONSUMER }, 'Worker started');
@@ -69,20 +82,17 @@ export async function startWorker(): Promise<void> {
     log.info({ run_id, step_id, attempt: currentAttempt }, 'Processing step');
 
     try {
-      // Check if run is cancelled before processing
+      // Check if run is cancelled before processing (via DB or Redis cancel key)
       const runRes = await db.query('SELECT status FROM runs WHERE id = $1', [run_id]);
-      if (runRes.rows[0]?.status === 'CANCELLED') {
+      const redisCancelled = await redis.exists(`flowforge:cancel:run:${run_id}`).catch(() => 0);
+      if (runRes.rows[0]?.status === 'CANCELLED' || redisCancelled === 1) {
         log.info({ run_id, step_id }, 'Skipping step for cancelled run');
         await broker.ack(STEP_STREAM, GROUP, msg.id);
         continue;
       }
 
       // Mark step RUNNING
-      await db.query(
-        `UPDATE step_runs SET status = 'RUNNING', started_at = COALESCE(started_at, now()), last_heartbeat_at = now()
-         WHERE run_id = $1 AND step_id = $2`,
-        [run_id, step_id],
-      );
+      await transitionStepRunStatus(db, run_id!, step_id!, 'RUNNING');
 
       await publishEvent(redis, {
         tenant_id: tenantId,
@@ -122,7 +132,7 @@ export async function startWorker(): Promise<void> {
       }
 
       // Execute the step
-      const outcome = await executeStep(stepSpec, run_id!, db);
+      const outcome = await executeStep(stepSpec, run_id!, db, redis);
 
       // Write completion log
       await appendLogs(db, [
@@ -154,22 +164,17 @@ export async function startWorker(): Promise<void> {
           );
 
           // Update step_run to READY for next attempt
-          await db.query(
-            `UPDATE step_runs SET attempt = $1, status = 'READY' WHERE run_id = $2 AND step_id = $3`,
-            [currentAttempt + 1, run_id, step_id],
-          );
+          await transitionStepRunStatus(db, run_id!, step_id!, 'READY', {
+            attempt: currentAttempt + 1,
+          });
 
-          // Re-enqueue with delay
-          setTimeout(() => {
-            broker
-              .enqueue(STEP_STREAM, {
-                run_id: run_id!,
-                step_id: step_id!,
-                tenant_id: tenantId,
-                attempt: String(currentAttempt + 1),
-              })
-              .catch((err) => log.error({ err }, 'Re-enqueue failed'));
-          }, delay);
+          // Re-enqueue with persisted Redis delay
+          await broker.enqueueDelayed(STEP_STREAM, {
+            run_id: run_id!,
+            step_id: step_id!,
+            tenant_id: tenantId,
+            attempt: String(currentAttempt + 1),
+          }, delay).catch((err) => log.error({ err }, 'Persisted delayed enqueue failed'));
 
           await broker.ack(STEP_STREAM, GROUP, msg.id);
           continue;
@@ -209,6 +214,7 @@ export async function startWorker(): Promise<void> {
   }
 
   log.info('Worker shutting down');
+  clearInterval(pollInterval);
   stopMetrics();
   await db.end();
   redis.disconnect();

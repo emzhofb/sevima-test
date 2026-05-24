@@ -8,6 +8,8 @@ export function createRealtimeServer(opts: {
   port: number;
   db: any;
   redis: Redis;
+  heartbeatInterval?: number;
+  heartbeatTimeout?: number;
 }) {
   const log = createLogger('realtime');
   const manager = new SubscriptionManager();
@@ -28,8 +30,8 @@ export function createRealtimeServer(opts: {
     }
   });
 
-  const HEARTBEAT_INTERVAL = 30_000;
-  const HEARTBEAT_TIMEOUT = 60_000;
+  const HEARTBEAT_INTERVAL = opts.heartbeatInterval ?? 30_000;
+  const HEARTBEAT_TIMEOUT = opts.heartbeatTimeout ?? 60_000;
 
   wss.on('connection', (ws: WebSocket, req) => {
     const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);

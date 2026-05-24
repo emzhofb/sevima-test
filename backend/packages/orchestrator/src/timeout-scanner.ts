@@ -1,11 +1,11 @@
 import type { Db } from '@flowforge/shared';
-import { publishEvent } from '@flowforge/shared';
+import { publishEvent, activeRuns, runsTotal } from '@flowforge/shared';
 
 export async function scanTimeouts(db: Db, redis?: any): Promise<number> {
   // Find RUNNING runs that have exceeded their workflow's timeout_sec
   const result = await db.query(
     `WITH timed_out AS (
-       SELECT r.id, r.tenant_id
+       SELECT r.id, r.tenant_id, r.trigger_type
        FROM runs r
        JOIN workflow_versions v ON v.id = r.version_id
        WHERE r.status = 'RUNNING'
@@ -16,18 +16,23 @@ export async function scanTimeouts(db: Db, redis?: any): Promise<number> {
      )
      UPDATE runs SET status = 'TIMED_OUT', finished_at = now()
      WHERE id IN (SELECT id FROM timed_out)
-     RETURNING id, tenant_id`,
+     RETURNING id, tenant_id, trigger_type`,
   );
 
   const rows = result.rows ?? [];
-  if (redis && rows.length > 0) {
+  if (rows.length > 0) {
     for (const row of rows) {
-      await publishEvent(redis, {
-        tenant_id: row.tenant_id,
-        run_id: row.id,
-        type: 'RUN_TIMED_OUT',
-        ts: Date.now(),
-      }).catch(() => {});
+      activeRuns.dec();
+      runsTotal.inc({ status: 'TIMED_OUT', trigger_type: row.trigger_type });
+
+      if (redis) {
+        await publishEvent(redis, {
+          tenant_id: row.tenant_id,
+          run_id: row.id,
+          type: 'RUN_TIMED_OUT',
+          ts: Date.now(),
+        }).catch(() => {});
+      }
     }
   }
 

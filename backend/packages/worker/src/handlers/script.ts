@@ -13,7 +13,7 @@ import type { StepOutcome } from '../index.js';
  * ⚠️ Track as production-blocker before public deploy.
  * See docs/SECURITY.md for details.
  */
-export async function executeScript(spec: any, _runId: string, _db: any): Promise<StepOutcome> {
+export async function executeScript(spec: any, runId?: string, _db?: any, redis?: any): Promise<StepOutcome> {
   const { language, code } = spec.config ?? {};
   const timeoutSec = spec.timeout_sec ?? 60;
 
@@ -27,16 +27,22 @@ export async function executeScript(spec: any, _runId: string, _db: any): Promis
   return new Promise<StepOutcome>((resolve) => {
     const child = spawn(command, args, {
       timeout: timeoutSec * 1000,
-      // Pass minimum env — do NOT inherit process.env
       env: {
         PATH: process.env.PATH || '/usr/bin:/usr/local/bin',
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
+    const checkInterval = redis && runId ? setInterval(async () => {
+      const cancelled = await redis.exists(`flowforge:cancel:run:${runId}`).catch(() => 0);
+      if (cancelled === 1) {
+        child.kill('SIGKILL');
+      }
+    }, 1000) : undefined;
+
     let stdout = '';
     let stderr = '';
-    const MAX_OUTPUT = 100 * 1024; // 100KB cap
+    const MAX_OUTPUT = 100 * 1024;
 
     child.stdout.on('data', (chunk: Buffer) => {
       stdout += chunk.toString();
@@ -49,6 +55,7 @@ export async function executeScript(spec: any, _runId: string, _db: any): Promis
     });
 
     child.on('exit', (code, signal) => {
+      if (checkInterval) clearInterval(checkInterval);
       if (signal === 'SIGTERM' || signal === 'SIGKILL') {
         return resolve({ ok: false, error: `Timeout or killed (${signal})` });
       }
@@ -65,6 +72,7 @@ export async function executeScript(spec: any, _runId: string, _db: any): Promis
     });
 
     child.on('error', (err) => {
+      if (checkInterval) clearInterval(checkInterval);
       resolve({ ok: false, error: err.message });
     });
   });

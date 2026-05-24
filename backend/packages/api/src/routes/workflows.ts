@@ -12,7 +12,7 @@ import {
 } from '../repos/workflow.repo.js';
 import { createRun } from '../repos/run.repo.js';
 import { writeAuditLog } from '../repos/audit.repo.js';
-import { publishEvent } from '@flowforge/shared';
+import { publishEvent, activeRuns, runsTotal } from '@flowforge/shared';
 
 const TriggerRunSchema = z.object({
   input: z.record(z.unknown()).default({}),
@@ -253,6 +253,10 @@ export const workflowRoutes: FastifyPluginAsync = async (fastify) => {
         run_id: run.id,
         tenant_id: run.tenant_id,
       });
+
+      // Track active runs in Prometheus
+      activeRuns.inc();
+      runsTotal.inc({ status: 'PENDING', trigger_type: 'MANUAL' });
 
       await publishEvent(fastify.redis, {
         tenant_id: run.tenant_id,

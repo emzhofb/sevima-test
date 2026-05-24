@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createStepRun, updateStepRun } from './step-run.repo.js';
+import { createStepRun, updateStepRun, transitionStepRunStatus, IllegalStateTransitionError } from './step-run.repo.js';
 
 describe('step-run.repo', () => {
   it('creates and updates step runs with scoped SQL', async () => {
@@ -46,5 +46,48 @@ describe('step-run.repo', () => {
       'UPDATE step_runs SET status = $2 WHERE id = $1 RETURNING *',
       ['step-run-1', 'RUNNING'],
     );
+  });
+
+  it('validates transitionStepRunStatus FSM constraints', async () => {
+    let currentStatus = 'PENDING';
+    const stepRun = {
+      id: 'step-run-1',
+      run_id: 'run-1',
+      tenant_id: 'tenant-1',
+      step_id: 'step-1',
+      status: currentStatus,
+      attempt: 1,
+    };
+
+    const query = vi.fn(async (sql: string, params?: any[]) => {
+      if (sql.startsWith('SELECT status FROM step_runs')) {
+        return { rows: [{ status: currentStatus }] };
+      }
+      if (sql.startsWith('UPDATE step_runs')) {
+        const nextStatus = params?.[2];
+        currentStatus = nextStatus;
+        return { rows: [{ ...stepRun, status: nextStatus }] };
+      }
+      return { rows: [] };
+    });
+
+    const db = { query };
+
+    // PENDING -> READY (valid)
+    const res1 = await transitionStepRunStatus(db as never, 'run-1', 'step-1', 'READY');
+    expect(res1.status).toBe('READY');
+
+    // READY -> RUNNING (valid)
+    const res2 = await transitionStepRunStatus(db as never, 'run-1', 'step-1', 'RUNNING');
+    expect(res2.status).toBe('RUNNING');
+
+    // RUNNING -> SUCCEEDED (valid)
+    const res3 = await transitionStepRunStatus(db as never, 'run-1', 'step-1', 'SUCCEEDED');
+    expect(res3.status).toBe('SUCCEEDED');
+
+    // SUCCEEDED -> RUNNING (invalid)
+    await expect(
+      transitionStepRunStatus(db as never, 'run-1', 'step-1', 'RUNNING')
+    ).rejects.toThrow(IllegalStateTransitionError);
   });
 });

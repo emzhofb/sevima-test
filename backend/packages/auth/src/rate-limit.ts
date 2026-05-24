@@ -1,5 +1,6 @@
 import type { Redis } from 'ioredis';
 import type { FastifyRequest, FastifyReply } from 'fastify';
+import { rateLimitHitTotal } from '@flowforge/shared';
 
 export type RateLimitResult = { allowed: true } | { allowed: false; retryAfterSec: number };
 
@@ -60,6 +61,7 @@ export function createRateLimitMiddleware(
     const result = await checkRateLimit(redis, key, limit, windowSec);
 
     if (!result.allowed) {
+      rateLimitHitTotal.inc({ tenant: request.ctx?.tenant_id ?? 'unknown' });
       reply.header('Retry-After', String(result.retryAfterSec));
       return reply.code(429).send({
         error: 'rate_limited',

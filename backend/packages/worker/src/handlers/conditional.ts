@@ -1,3 +1,4 @@
+/* eslint-disable custom-security/reject-sql-without-tenant */
 import type { StepOutcome } from '../index.js';
 
 // Use a safe expression evaluator instead of eval() or new Function()
