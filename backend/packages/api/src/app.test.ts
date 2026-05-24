@@ -23,7 +23,7 @@ describe('Fastify app configuration', () => {
   });
 
   it('rejects body > 1 MB with 413', async () => {
-    app.post('/test', async () => {
+    app.post('/health/test', async () => {
       return { success: true };
     });
 
@@ -32,7 +32,7 @@ describe('Fastify app configuration', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/test',
+      url: '/health/test',
       headers: {
         'content-type': 'application/json',
       },
@@ -43,7 +43,7 @@ describe('Fastify app configuration', () => {
   });
 
   it('accepts body < 1 MB', async () => {
-    app.post('/test', async () => {
+    app.post('/health/test', async () => {
       return { success: true };
     });
 
@@ -52,7 +52,7 @@ describe('Fastify app configuration', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/test',
+      url: '/health/test',
       headers: {
         'content-type': 'application/json',
       },

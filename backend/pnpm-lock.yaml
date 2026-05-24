@@ -49,6 +49,9 @@ importers:
       '@flowforge/auth':
         specifier: workspace:*
         version: link:../auth
+      '@flowforge/parser':
+        specifier: workspace:*
+        version: link:../parser
       '@flowforge/shared':
         specifier: workspace:*
         version: link:../shared
