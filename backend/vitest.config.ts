@@ -1,6 +1,19 @@
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { defineConfig } from 'vitest/config';
 
+const backendRoot = resolve(fileURLToPath(new URL('.', import.meta.url)));
+
 export default defineConfig({
+  resolve: {
+    alias: [
+      {
+        find: /^@flowforge\/([^/]+)$/,
+        replacement: resolve(backendRoot, 'packages/$1/src/index.ts'),
+      },
+    ],
+  },
   test: {
     globals: true,
     environment: 'node',
