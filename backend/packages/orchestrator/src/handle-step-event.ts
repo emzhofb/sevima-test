@@ -1,6 +1,6 @@
 import { computeReadySet } from '@flowforge/parser';
 import { withTransaction } from '@flowforge/shared';
-import type { Db, Broker } from '@flowforge/shared';
+import type { Db, DbClient, Broker } from '@flowforge/shared';
 
 export type StepEvent = {
   event_id: string; // unique, used for dedup
@@ -19,7 +19,7 @@ export async function handleStepEvent(
   broker: Broker,
   event: StepEvent,
 ): Promise<void> {
-  await withTransaction(db, async (client) => {
+  await withTransaction(db, async (client: DbClient) => {
     // Dedup: insert event_id into processed_events, skip if already exists
     const dedup = await client.query(
       `INSERT INTO processed_events (event_id) VALUES ($1)
