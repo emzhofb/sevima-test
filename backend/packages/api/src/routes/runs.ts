@@ -43,6 +43,41 @@ export const runRoutes: FastifyPluginAsync = async (fastify) => {
     return listRuns(fastify.db, ctx.tenant_id, queryOpts);
   });
 
+  fastify.get(
+    '/runs/stats',
+    { preHandler: requireRole('VIEWER') },
+    async (request, reply) => {
+      const ctx = request.ctx!;
+      const sinceCutoff = new Date(Date.now() - 24 * 3600_000);
+
+      const result = await fastify.db.query(
+        `SELECT
+           status, COUNT(*) as count,
+           AVG(EXTRACT(EPOCH FROM (finished_at - started_at))) as avg_duration_sec
+         FROM runs
+         WHERE tenant_id = $1 AND started_at >= $2
+         GROUP BY status`,
+        [ctx.tenant_id, sinceCutoff],
+      );
+
+      const byStatus: Record<string, { count: number; avg_duration_sec: number }> = {};
+      for (const r of result.rows) {
+        byStatus[r.status] = {
+          count: Number(r.count),
+          avg_duration_sec: Number(r.avg_duration_sec ?? 0),
+        };
+      }
+
+      const activeQuery = await fastify.db.query(
+        `SELECT COUNT(*)::int as c FROM runs WHERE tenant_id = $1 AND status IN ('PENDING','RUNNING')`,
+        [ctx.tenant_id],
+      );
+      const active = activeQuery.rows[0]?.c ?? 0;
+
+      return { active, by_status: byStatus };
+    },
+  );
+
   fastify.get<{ Params: { id: string } }>(
     '/runs/:id',
     { preHandler: requireRole('VIEWER') },

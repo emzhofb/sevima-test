@@ -15,6 +15,19 @@ describe('Runs routes', () => {
 
   beforeEach(async () => {
     const clientQuery = vi.fn(async (sql: string, params?: unknown[]) => {
+      if (sql.includes('AVG(EXTRACT(EPOCH FROM (finished_at - started_at)))')) {
+        return {
+          rows: [
+            { status: 'SUCCEEDED', count: '5', avg_duration_sec: '15.5' },
+            { status: 'FAILED', count: '1', avg_duration_sec: '2.0' },
+          ],
+        };
+      }
+      if (sql.includes("status IN ('PENDING','RUNNING')")) {
+        return {
+          rows: [{ c: 3 }],
+        };
+      }
       if (sql.includes('INSERT INTO tenants')) {
         return {
           rows: [{ id: tenantAId, slug: params?.[0], name: params?.[1], created_at: new Date() }],
@@ -296,6 +309,32 @@ describe('Runs routes', () => {
       });
 
       expect(res.statusCode).toBe(404);
+    });
+  });
+
+  describe('GET /runs/stats', () => {
+    it('returns aggregated statistics for the tenant', async () => {
+      const token = buildAuthToken(tenantAId, 'user-viewer', 'VIEWER', jwtSecret);
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/runs/stats',
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const data = res.json();
+      expect(data.active).toBe(3);
+      expect(data.by_status.SUCCEEDED).toEqual({ count: 5, avg_duration_sec: 15.5 });
+      expect(data.by_status.FAILED).toEqual({ count: 1, avg_duration_sec: 2 });
+    });
+
+    it('requires VIEWER role', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/runs/stats',
+      });
+      expect(res.statusCode).toBe(401);
     });
   });
 });
