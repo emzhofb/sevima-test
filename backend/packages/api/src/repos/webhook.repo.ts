@@ -14,11 +14,10 @@ export async function rotateWebhookSecret(
   const plain = randomBytes(32).toString('hex');
   const hash = await hashPassword(plain);
 
-  await db.query('UPDATE workflows SET webhook_secret_hash = $1 WHERE tenant_id = $2 AND id = $3', [
-    hash,
-    tenantId,
-    workflowId,
-  ]);
+  await db.query(
+    'UPDATE workflows SET webhook_secret_hash = $1, webhook_secret = $2 WHERE tenant_id = $3 AND id = $4',
+    [hash, plain, tenantId, workflowId],
+  );
 
   return plain;
 }
@@ -43,21 +42,15 @@ export async function verifyWebhookSignature(
   timestamp: number,
   signature: string,
 ): Promise<boolean> {
-  const result = await db.query<{ webhook_secret_hash: string | null }>(
-    'SELECT webhook_secret_hash FROM workflows WHERE tenant_id = $1 AND id = $2',
+  const result = await db.query<{ webhook_secret: string | null }>(
+    'SELECT webhook_secret FROM workflows WHERE tenant_id = $1 AND id = $2',
     [tenantId, workflowId],
   );
   const row = result.rows[0];
-  if (!row?.webhook_secret_hash) return false;
+  if (!row?.webhook_secret) return false;
 
-  // Verify the hash matches a known secret — this uses bcrypt comparison
-  // Note: we need to find the secret somehow. Here we do timing-safe comparison of signatures.
-  // Since we store hash, we can't recompute signature — we verify by checking if provided sig matches
-  // what we'd get with the stored hash. For bcrypt-hashed secrets, we need the plaintext.
-  // Alternative: store the secret encrypted (not hashed) for signature verification.
-  // For simplicity in MVP: verify password (bcrypt compare), then compute signature.
-  const isMatch = await verifyPassword(signature, row.webhook_secret_hash);
-  return isMatch;
+  const expectedSig = computeWebhookSignature(row.webhook_secret, body, timestamp);
+  return verifyWebhookSignatureHmac(signature, expectedSig);
 }
 
 /**

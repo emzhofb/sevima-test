@@ -1,10 +1,11 @@
 import type { Db } from '@flowforge/shared';
+import { publishEvent } from '@flowforge/shared';
 
-export async function scanTimeouts(db: Db): Promise<number> {
+export async function scanTimeouts(db: Db, redis?: any): Promise<number> {
   // Find RUNNING runs that have exceeded their workflow's timeout_sec
   const result = await db.query(
     `WITH timed_out AS (
-       SELECT r.id
+       SELECT r.id, r.tenant_id
        FROM runs r
        JOIN workflow_versions v ON v.id = r.version_id
        WHERE r.status = 'RUNNING'
@@ -15,19 +16,32 @@ export async function scanTimeouts(db: Db): Promise<number> {
      )
      UPDATE runs SET status = 'TIMED_OUT', finished_at = now()
      WHERE id IN (SELECT id FROM timed_out)
-     RETURNING id`,
+     RETURNING id, tenant_id`,
   );
+
+  const rows = result.rows ?? [];
+  if (redis && rows.length > 0) {
+    for (const row of rows) {
+      await publishEvent(redis, {
+        tenant_id: row.tenant_id,
+        run_id: row.id,
+        type: 'RUN_TIMED_OUT',
+        ts: Date.now(),
+      }).catch(() => {});
+    }
+  }
+
   return result.rowCount ?? 0;
 }
 
-export function startTimeoutScanner(db: Db, intervalMs = 5000): () => void {
+export function startTimeoutScanner(db: Db, redis?: any, intervalMs = 5000): () => void {
   let running = true;
   let timer: NodeJS.Timeout | undefined;
 
   const tick = async () => {
     if (!running) return;
     try {
-      await scanTimeouts(db);
+      await scanTimeouts(db, redis);
     } catch (err) {
       console.error('Timeout scanner error', err);
     } finally {

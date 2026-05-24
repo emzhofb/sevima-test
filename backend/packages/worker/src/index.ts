@@ -5,6 +5,7 @@ import {
   RedisStreamBroker,
   computeBackoff,
   appendLogs,
+  publishEvent,
 } from '@flowforge/shared';
 import type { DbClient } from '@flowforge/shared';
 import Redis from 'ioredis';
@@ -79,6 +80,14 @@ export async function startWorker(): Promise<void> {
          WHERE run_id = $1 AND step_id = $2`,
         [run_id, step_id],
       );
+
+      await publishEvent(redis, {
+        tenant_id: tenantId,
+        run_id: run_id!,
+        step_id: step_id!,
+        type: 'STEP_STARTED',
+        ts: Date.now(),
+      }).catch(() => {});
 
       // Write start log
       await appendLogs(db, [

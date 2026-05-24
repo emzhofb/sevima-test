@@ -9,7 +9,7 @@ import {
 } from '../repos/run.repo.js';
 import { listStepRuns } from '../repos/step-run.repo.js';
 import { writeAuditLog } from '../repos/audit.repo.js';
-import { withTransaction } from '@flowforge/shared';
+import { withTransaction, publishEvent } from '@flowforge/shared';
 
 const ListRunsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -72,6 +72,15 @@ export const runRoutes: FastifyPluginAsync = async (fastify) => {
         await withTransaction(fastify.db, async (client) => {
           await transitionRunStatus(client, id, 'CANCELLED');
         });
+
+        if (fastify.redis) {
+          await publishEvent(fastify.redis, {
+            tenant_id: ctx.tenant_id,
+            run_id: id,
+            type: 'RUN_CANCELLED',
+            ts: Date.now(),
+          }).catch(() => {});
+        }
       } catch (err) {
         if (err instanceof IllegalStateTransitionError) {
           return reply.code(409).send({ error: 'cannot_cancel', current_status: run.status });

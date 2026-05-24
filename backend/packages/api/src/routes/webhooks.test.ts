@@ -12,6 +12,7 @@ import {
 describe('Webhook secret management', () => {
   const jwtSecret = 'test-secret-at-least-32-characters-long';
   const tenantId = 'tenant-aaa-0000-0000-000000000001';
+  const tenantSlug = 'tenant-slug-1';
   const workflowId = 'wf-111-1111-1111-1111-111111111111';
 
   let mockDb: any;
@@ -19,6 +20,20 @@ describe('Webhook secret management', () => {
 
   beforeEach(async () => {
     const clientQuery = vi.fn(async (sql: string, params?: unknown[]) => {
+      // Webhook receiver lookup
+      if (sql.includes('SELECT w.id, w.tenant_id, w.webhook_secret')) {
+        return {
+          rows: [
+            {
+              id: workflowId,
+              tenant_id: tenantId,
+              webhook_secret: 'my-webhook-secret',
+              current_version: 1,
+              version_id: 'ver-1',
+            },
+          ],
+        };
+      }
       // Workflow lookup
       if (sql.includes('FROM workflows WHERE tenant_id') && sql.includes('AND id')) {
         return {
@@ -27,6 +42,7 @@ describe('Webhook secret management', () => {
               id: workflowId,
               tenant_id: tenantId,
               current_version: 1,
+              webhook_secret: 'my-webhook-secret',
               webhook_secret_hash: 'hashed',
             },
           ],
@@ -39,6 +55,9 @@ describe('Webhook secret management', () => {
       }
       if (sql.includes('UPDATE workflows SET webhook_secret_hash')) {
         return { rows: [] };
+      }
+      if (sql.includes('INSERT INTO runs')) {
+        return { rows: [{ id: 'run-123' }] };
       }
       return { rows: [] };
     });
@@ -84,6 +103,69 @@ describe('Webhook secret management', () => {
         headers: { authorization: `Bearer ${token}` },
       });
       expect(res.statusCode).toBe(404);
+    });
+  });
+
+  describe('POST /webhooks/:tenant_slug/:workflow_id', () => {
+    it('triggers a run for a valid signature and within-window timestamp', async () => {
+      const body = { test: true };
+      const ts = Math.floor(Date.now() / 1000);
+      const signature = computeWebhookSignature('my-webhook-secret', JSON.stringify(body), ts);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/webhooks/${tenantSlug}/${workflowId}`,
+        headers: {
+          'x-flowforge-signature': signature,
+          'x-flowforge-timestamp': String(ts),
+        },
+        payload: body,
+      });
+
+      expect(res.statusCode).toBe(202);
+      expect(res.json().run_id).toBe('run-123');
+    });
+
+    it('returns 401 if signature or timestamp header is missing', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: `/webhooks/${tenantSlug}/${workflowId}`,
+        payload: { test: true },
+      });
+      expect(res.statusCode).toBe(401);
+    });
+
+    it('returns 401 if timestamp is expired (more than 5 minutes difference)', async () => {
+      const body = { test: true };
+      const ts = Math.floor(Date.now() / 1000) - 301; // 5 min 1 sec ago
+      const signature = computeWebhookSignature('my-webhook-secret', JSON.stringify(body), ts);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/webhooks/${tenantSlug}/${workflowId}`,
+        headers: {
+          'x-flowforge-signature': signature,
+          'x-flowforge-timestamp': String(ts),
+        },
+        payload: body,
+      });
+      expect(res.statusCode).toBe(401);
+    });
+
+    it('returns 401 if signature does not match', async () => {
+      const body = { test: true };
+      const ts = Math.floor(Date.now() / 1000);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/webhooks/${tenantSlug}/${workflowId}`,
+        headers: {
+          'x-flowforge-signature': 'invalid-signature-hex',
+          'x-flowforge-timestamp': String(ts),
+        },
+        payload: body,
+      });
+      expect(res.statusCode).toBe(401);
     });
   });
 

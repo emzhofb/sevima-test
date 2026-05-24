@@ -8,6 +8,7 @@ import { workflowRoutes } from './routes/workflows.js';
 import { runRoutes } from './routes/runs.js';
 import { scheduleRoutes } from './routes/schedules.js';
 import { webhookRoutes } from './routes/webhooks.js';
+import { aiRoutes } from './routes/ai.js';
 
 export interface ApiAppOptions {
   db: Db;
@@ -59,6 +60,7 @@ export async function buildApp(opts: ApiAppOptions) {
   await app.register(runRoutes);
   await app.register(scheduleRoutes);
   await app.register(webhookRoutes);
+  await app.register(aiRoutes);
 
   // Health check endpoint
   app.get('/health', async () => {

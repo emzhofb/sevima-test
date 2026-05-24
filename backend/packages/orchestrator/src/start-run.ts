@@ -1,5 +1,5 @@
 import { computeReadySet } from '@flowforge/parser';
-import { withTransaction } from '@flowforge/shared';
+import { withTransaction, publishEvent } from '@flowforge/shared';
 import type { Db, Broker } from '@flowforge/shared';
 
 export async function startRun(db: Db, broker: Broker, runId: string): Promise<void> {
@@ -25,6 +25,16 @@ export async function startRun(db: Db, broker: Broker, runId: string): Promise<v
     await client.query(`UPDATE runs SET status = 'RUNNING', started_at = now() WHERE id = $1`, [
       runId,
     ]);
+
+    const redis = (broker as any).redis;
+    if (redis) {
+      await publishEvent(redis, {
+        tenant_id: run.tenant_id,
+        run_id: runId,
+        type: 'RUN_STARTED',
+        ts: Date.now(),
+      }).catch(() => {});
+    }
 
     // Compute initial ready set (steps with no dependencies)
     const ready = computeReadySet(definition, new Set());
