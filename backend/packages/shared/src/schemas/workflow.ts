@@ -32,8 +32,32 @@ export const WorkflowDefinitionSchema = z.object({
   steps: z.array(StepSpecSchema).min(1),
 }).strict();
 
+export const WorkflowSchema = z
+  .object({
+    id: z.string().uuid(),
+    tenant_id: z.string().uuid(),
+    name: z.string().min(1).max(200),
+    current_version: z.number().int().positive(),
+    created_at: z.date(),
+    updated_at: z.date(),
+  })
+  .strict();
+
+export const WorkflowVersionSchema = z
+  .object({
+    id: z.string().uuid(),
+    workflow_id: z.string().uuid(),
+    version: z.number().int().positive(),
+    definition: WorkflowDefinitionSchema,
+    created_by: z.string().uuid().nullable(),
+    created_at: z.date(),
+  })
+  .strict();
+
 export type RetryPolicy = z.infer<typeof RetryPolicySchema>;
 export type StepSpec = z.infer<typeof StepSpecSchema>;
 export type WorkflowDefinition = z.infer<typeof WorkflowDefinitionSchema>;
 export type StepType = z.infer<typeof StepTypeSchema>;
 export type Role = z.infer<typeof RoleSchema>;
+export type Workflow = z.infer<typeof WorkflowSchema>;
+export type WorkflowVersion = z.infer<typeof WorkflowVersionSchema>;
