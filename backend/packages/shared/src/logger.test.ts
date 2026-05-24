@@ -73,8 +73,8 @@ describe('createLogger', () => {
       fc.property(
         fc
           .string({ minLength: 1, maxLength: 64 })
-          .filter((value) => !value.includes('\n') && !value.includes('\r')),
-        (name) => {
+          .filter((value: string) => !value.includes('\n') && !value.includes('\r')),
+        (name: string) => {
           const output = captureLogs();
           const logger = createLogger(name, {
             env: { NODE_ENV: 'production' },

@@ -34,11 +34,14 @@ importers:
   packages/parser:
     dependencies:
       '@flowforge/shared':
-        specifier: '*'
+        specifier: workspace:*
         version: link:../shared
       yaml:
         specifier: ^2.4.0
         version: 2.9.0
+      zod:
+        specifier: ^3.22.4
+        version: 3.25.76
     devDependencies:
       fast-check:
         specifier: ^3.15.0
@@ -59,6 +62,10 @@ importers:
       zod:
         specifier: ^3.22.4
         version: 3.25.76
+    devDependencies:
+      fast-check:
+        specifier: ^3.15.0
+        version: 3.23.2
 
   packages/worker: {}
 
