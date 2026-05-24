@@ -66,7 +66,7 @@ describe('E2E happy path', () => {
       ws.on('error', reject);
     });
     ws.send(JSON.stringify({ action: 'subscribe', run_id: runId }));
-    ws.on('message', (m) => events.push(JSON.parse(m.toString())));
+    ws.on('message', (m: any) => events.push(JSON.parse(m.toString())));
 
     // Wait for RUN_SUCCEEDED (max 60s)
     const start = Date.now();

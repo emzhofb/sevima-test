@@ -1,4 +1,4 @@
-import { createDbClient, loadConfig } from '@flowforge/shared';
+import { createDbClient, loadConfig, type WorkflowDefinition } from '@flowforge/shared';
 import { hashPassword } from '@flowforge/auth';
 import { createTenant, getTenantBySlug } from '../packages/api/src/repos/tenant.repo.js';
 import { createUser, getUserByEmail } from '../packages/api/src/repos/user.repo.js';
@@ -29,12 +29,24 @@ async function seed() {
     console.log('✓ User admin@acme.com already exists');
   }
 
-  const definition = {
+  const definition: WorkflowDefinition = {
     name: 'Sample',
     timeout_sec: 60,
     steps: [
-      { id: 'fetch', type: 'HTTP', depends_on: [], config: { method: 'GET', url: 'https://httpbin.org/uuid' } },
-      { id: 'wait', type: 'DELAY', depends_on: ['fetch'], config: { duration_ms: 1000 } },
+      {
+        id: 'fetch',
+        type: 'HTTP',
+        depends_on: [],
+        config: { method: 'GET', url: 'https://httpbin.org/uuid' },
+        continue_on_failure: false,
+      },
+      {
+        id: 'wait',
+        type: 'DELAY',
+        depends_on: ['fetch'],
+        config: { duration_ms: 1000 },
+        continue_on_failure: false,
+      },
     ],
   };
 
