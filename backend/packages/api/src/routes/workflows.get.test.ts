@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import RedisMock from 'ioredis-mock';
 import { buildApp } from '../app.js';
 import { createTestTenantAndUser, buildAuthToken } from '../test/auth-helpers.js';
 
@@ -88,7 +89,7 @@ describe('GET /workflows/:id route', () => {
       })),
     };
 
-    app = await buildApp({ db: mockDb, jwtSecret });
+    app = await buildApp({ db: mockDb, jwtSecret, redis: new RedisMock() as any });
   });
 
   it('returns 200 with workflow for the owner tenant (VIEWER role)', async () => {

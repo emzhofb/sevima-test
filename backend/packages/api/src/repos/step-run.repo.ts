@@ -73,3 +73,17 @@ export async function updateStepRun(
   }
   return stepRun;
 }
+
+export async function listStepRuns(
+  db: Db,
+  tenantId: string,
+  runId: string,
+): Promise<StepRun[]> {
+  const result = await db.query<StepRun>(
+    `SELECT * FROM step_runs
+     WHERE tenant_id = $1 AND run_id = $2
+     ORDER BY COALESCE(started_at, '1970-01-01') ASC, step_id ASC`,
+    [tenantId, runId],
+  );
+  return result.rows;
+}

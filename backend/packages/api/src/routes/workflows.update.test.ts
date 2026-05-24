@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import RedisMock from 'ioredis-mock';
 import { buildApp } from '../app.js';
 import { buildAuthToken } from '../test/auth-helpers.js';
 
@@ -127,7 +128,7 @@ describe('PATCH /workflows/:id route', () => {
       connect: vi.fn(async () => ({ query: clientQuery, release: vi.fn() })),
     };
 
-    app = await buildApp({ db: mockDb, jwtSecret });
+    app = await buildApp({ db: mockDb, jwtSecret, redis: new RedisMock() as any });
   });
 
   it('returns 200 and new version number after update', async () => {
