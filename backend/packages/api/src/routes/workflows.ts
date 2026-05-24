@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { requireRole } from '@flowforge/auth';
 import { parse } from '@flowforge/parser';
-import { createWorkflow, getWorkflowById, listWorkflows, updateWorkflow } from '../repos/workflow.repo.js';
+import { createWorkflow, getWorkflowById, listWorkflows, updateWorkflow, rollbackWorkflow } from '../repos/workflow.repo.js';
 import { writeAuditLog } from '../repos/audit.repo.js';
 
 const CreateWorkflowSchema = z.object({
@@ -136,6 +136,49 @@ export const workflowRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       return wf;
+    },
+  );
+
+  fastify.post<{ Params: { id: string } }>(
+    '/workflows/:id/rollback',
+    { preHandler: requireRole('ADMIN') },
+    async (request, reply) => {
+      const ctx = request.ctx;
+      if (!ctx) {
+        return reply.code(401).send({ error: 'unauthorized', message: 'Missing request context' });
+      }
+
+      const parsed = z.object({ targetVersion: z.number().int().min(1) }).safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: 'invalid_input', issues: parsed.error.flatten() });
+      }
+
+      try {
+        const wf = await rollbackWorkflow(
+          fastify.db,
+          ctx.tenant_id,
+          request.params.id,
+          parsed.data.targetVersion,
+          ctx.user_id,
+        );
+
+        await writeAuditLog(fastify.db, {
+          tenant_id: ctx.tenant_id,
+          user_id: ctx.user_id,
+          action: 'workflow.rollback',
+          resource_type: 'workflow',
+          resource_id: wf.id,
+          request_id: ctx.request_id,
+          metadata: { rolled_back_to: parsed.data.targetVersion, new_version: wf.current_version },
+        });
+
+        return wf;
+      } catch (err) {
+        const msg = (err as Error).message;
+        if (msg.includes('Version')) return reply.code(400).send({ error: 'invalid_target_version' });
+        if (msg.includes('not found')) return reply.code(404).send({ error: 'not_found' });
+        throw err;
+      }
     },
   );
 };
