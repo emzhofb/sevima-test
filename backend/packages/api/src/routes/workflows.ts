@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { requireRole } from '@flowforge/auth';
 import { parse } from '@flowforge/parser';
-import { createWorkflow } from '../repos/workflow.repo.js';
+import { createWorkflow, getWorkflowById } from '../repos/workflow.repo.js';
 import { writeAuditLog } from '../repos/audit.repo.js';
 
 const CreateWorkflowSchema = z.object({
@@ -44,5 +44,26 @@ export const workflowRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     return reply.code(201).send(wf);
+  });
+
+  fastify.get<{ Params: { id: string }, Querystring: { version?: string } }>('/workflows/:id', { preHandler: requireRole('VIEWER') }, async (request, reply) => {
+    const ctx = request.ctx;
+    if (!ctx) {
+      return reply.code(401).send({ error: 'unauthorized', message: 'Missing request context' });
+    }
+
+    const versionRaw = request.query.version;
+    const version = versionRaw ? Number(versionRaw) : undefined;
+
+    if (versionRaw && (Number.isNaN(version) || version! < 1)) {
+      return reply.code(400).send({ error: 'invalid_version' });
+    }
+
+    const wf = await getWorkflowById(fastify.db, ctx.tenant_id, request.params.id, version);
+    if (!wf) {
+      return reply.code(404).send({ error: 'not_found' });
+    }
+
+    return wf;
   });
 };
