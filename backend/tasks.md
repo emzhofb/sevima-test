@@ -47,30 +47,30 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Test repository melempar error ketika dipanggil tanpa `tenantId`
     - _Requirements: 1.9, 4.5, 4.6_
 
-- [ ] 3. DAG Parser dan validator (`packages/parser`)
-  - [ ] 3.1 Implementasikan `validateAndSortDAG` dengan Kahn's algorithm
+- [x] 3. DAG Parser dan validator (`packages/parser`)
+  - [x] 3.1 Implementasikan `validateAndSortDAG` dengan Kahn's algorithm
     - Implementasikan deteksi duplicate id, dangling dependency, dan cycle; kembalikan structured error `{ step_id, issue }` dengan taxonomy `cycle | dangling_dependency | duplicate_id | unknown_field | type_mismatch | missing_required | out_of_range | unknown_step_type`
     - Pastikan parser strict mode menolak field tidak dikenal
     - Implementasikan size guard: tolak input > 5 MB atau > 1000 steps dengan error `input_too_large`
     - _Requirements: 1.1, 1.4, 1.9, 9.3, 9.4_
-  - [ ] 3.2 Implementasikan canonical serializer / pretty-printer JSON dan YAML
+  - [x] 3.2 Implementasikan canonical serializer / pretty-printer JSON dan YAML
     - Sorted keys lexicographic, indent 2 space, UTF-8, LF line ending
     - Pastikan `prettyPrint(parse(prettyPrint(parse(input))))` byte-identical dengan `prettyPrint(parse(input))`
     - _Requirements: 9.1, 9.2_
-  - [ ] 3.3 Implementasikan `topologicalSort` dan `computeReadySet` sebagai API publik
+  - [x] 3.3 Implementasikan `topologicalSort` dan `computeReadySet` sebagai API publik
     - Ekspor sebagai pure function untuk dipakai orchestrator
     - _Requirements: 1.2_
-  - [ ]* 3.4 Tulis property test untuk Property 2 (DAG Validity)
+  - [x]* 3.4 Tulis property test untuk Property 2 (DAG Validity)
     - **Property 2: DAG Validity** — `∀ workflow w yang ter-persist: validateAndSortDAG(w.definition).ok = true`
     - Generator: random DAG (mix valid + invalid); assert parser hanya menerima yang `ok = true`
     - **Validates: Requirements 1.1**
-  - [ ]* 3.5 Tulis property test untuk parser round-trip
+  - [x]* 3.5 Tulis property test untuk parser round-trip
     - Generator: `WorkflowDefinition` valid acak; assert `parse(serialize(d, fmt))` ekivalen field-by-field dengan `d` untuk `fmt ∈ { JSON, YAML }`
     - **Validates: Requirements 9.1**
-  - [ ]* 3.6 Tulis property test untuk pretty-print idempotence
+  - [x]* 3.6 Tulis property test untuk pretty-print idempotence
     - Assert `prettyPrint(parse(prettyPrint(parse(input))))` byte-identical dengan `prettyPrint(parse(input))`
     - **Validates: Requirements 9.2**
-  - [ ]* 3.7 Tulis unit tests untuk error taxonomy dan input limits
+  - [x]* 3.7 Tulis unit tests untuk error taxonomy dan input limits
     - Test setiap kategori error muncul untuk input yang sesuai (cycle, dangling, duplicate, unknown_step_type, dst.)
     - Test penolakan input > 5 MB dan > 1000 steps
     - _Requirements: 1.4, 1.9, 9.3, 9.4_
