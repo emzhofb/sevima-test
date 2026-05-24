@@ -7,7 +7,7 @@ export function computeReadySet(
   const ready = new Set<string>();
   for (const step of definition.steps) {
     if (completed.has(step.id)) continue;
-    const allDepsCompleted = step.depends_on.every((dep) => completed.has(dep));
+    const allDepsCompleted = step.depends_on.every((dep: string) => completed.has(dep));
     if (allDepsCompleted) ready.add(step.id);
   }
   return ready;

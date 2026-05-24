@@ -76,7 +76,7 @@ function parseObject(parsed: unknown): ParseResult {
 
   const result = WorkflowDefinitionSchema.safeParse(parsed);
   if (!result.success) {
-    const errors: ValidationError[] = result.error.issues.map((iss) => ({
+    const errors: ValidationError[] = result.error.issues.map((iss: z.ZodIssue) => ({
       step_id: extractStepIdFromPath(iss.path, parsed),
       issue: mapZodIssue(iss),
       message: iss.message,

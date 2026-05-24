@@ -13,7 +13,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@flowforge/shared": "*",
+    "@flowforge/shared": "workspace:*",
+    "zod": "^3.22.4",
     "yaml": "^2.4.0"
   },
   "devDependencies": {

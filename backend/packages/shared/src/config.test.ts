@@ -12,6 +12,10 @@ const baseEnv = {
 };
 
 describe('loadConfig', () => {
+  const nodeEnvArb = fc.constantFrom('development', 'production', 'test') as fc.Arbitrary<
+    'development' | 'production' | 'test'
+  >;
+
   it('loads and coerces a valid environment', () => {
     expect(loadConfig(baseEnv)).toEqual({
       NODE_ENV: 'test',
@@ -50,7 +54,7 @@ describe('loadConfig', () => {
   it('accepts valid generated config values', () => {
     fc.assert(
       fc.property(
-        fc.constantFrom('development', 'production', 'test'),
+        nodeEnvArb,
         fc.webUrl(),
         fc.webUrl(),
         fc.string({ minLength: 32 }),
@@ -73,7 +77,7 @@ describe('loadConfig', () => {
 
   it('rejects generated JWT_SECRET values below the minimum length', () => {
     fc.assert(
-      fc.property(fc.string({ maxLength: 31 }), (JWT_SECRET) => {
+      fc.property(fc.string({ maxLength: 31 }), (JWT_SECRET: string) => {
         expect(() =>
           loadConfig({
             ...baseEnv,
