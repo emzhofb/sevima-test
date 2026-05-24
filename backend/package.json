@@ -8,6 +8,10 @@
   ],
   "scripts": {
     "build": "pnpm -r build",
+    "migrate": "node-pg-migrate",
+    "migrate:up": "node-pg-migrate up",
+    "migrate:down": "node-pg-migrate down",
+    "migrate:create": "node-pg-migrate create",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -17,6 +21,8 @@
   "devDependencies": {
     "@types/node": "^25.9.1",
     "@vitest/coverage-v8": "^4.1.7",
+    "node-pg-migrate": "^8.0.4",
+    "pg": "^8.21.0",
     "typescript": "^5.3.3",
     "vitest": "^4.1.7"
   }
