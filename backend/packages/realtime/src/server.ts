@@ -1,6 +1,6 @@
 import { WebSocketServer, type WebSocket } from 'ws';
 import Redis from 'ioredis';
-import { loadConfig, createLogger, createDbClient } from '@flowforge/shared';
+import { loadConfig, createLogger, createDbClient, startMetricsServer } from '@flowforge/shared';
 import { verifyJwt } from '@flowforge/auth';
 import { SubscriptionManager, type Connection } from './subscription-manager.js';
 
@@ -129,4 +129,5 @@ if (process.env.NODE_ENV !== 'test') {
   const redisPubSub = new Redis(config.REDIS_URL);
   createRealtimeServer({ port: 3001, db, redis: redisPubSub });
   createLogger('realtime').info('Realtime server listening on :3001/ws');
+  startMetricsServer(Number(process.env.METRICS_PORT ?? 3005));
 }

@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 import type { Db } from '@flowforge/shared';
-import { RedisStreamBroker, type Broker } from '@flowforge/shared';
+import { RedisStreamBroker, type Broker, httpDuration, registry } from '@flowforge/shared';
 import { authPlugin, createRateLimitMiddleware } from '@flowforge/auth';
 import type { Redis } from 'ioredis';
 import { authRoutes } from './routes/auth.js';
@@ -65,6 +65,19 @@ export async function buildApp(opts: ApiAppOptions) {
   // Health check endpoint
   app.get('/health', async () => {
     return { status: 'ok' };
+  });
+
+  app.addHook('onResponse', async (req, reply) => {
+    const route = (req.routeOptions?.url ?? req.url ?? '').split('?')[0] ?? '';
+    httpDuration.observe(
+      { method: req.method, route, status: String(reply.statusCode) },
+      reply.elapsedTime,
+    );
+  });
+
+  app.get('/metrics', async (req, reply) => {
+    reply.type(registry.contentType);
+    return registry.metrics();
   });
 
   // Database health check endpoint

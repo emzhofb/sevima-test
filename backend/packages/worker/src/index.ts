@@ -6,6 +6,7 @@ import {
   computeBackoff,
   appendLogs,
   publishEvent,
+  startMetricsServer,
 } from '@flowforge/shared';
 import type { DbClient } from '@flowforge/shared';
 import Redis from 'ioredis';
@@ -55,6 +56,8 @@ export async function startWorker(): Promise<void> {
   });
 
   log.info({ consumer: CONSUMER }, 'Worker started');
+
+  const stopMetrics = startMetricsServer(Number(process.env.PORT ?? 3003));
 
   while (running) {
     const msg = await broker.dequeue(STEP_STREAM, GROUP, CONSUMER, 5000);
@@ -206,6 +209,7 @@ export async function startWorker(): Promise<void> {
   }
 
   log.info('Worker shutting down');
+  stopMetrics();
   await db.end();
   redis.disconnect();
 }

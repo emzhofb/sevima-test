@@ -1,4 +1,4 @@
-import { loadConfig, createDbClient, createLogger, RedisStreamBroker } from '@flowforge/shared';
+import { loadConfig, createDbClient, createLogger, RedisStreamBroker, startMetricsServer } from '@flowforge/shared';
 import type { Db, Broker } from '@flowforge/shared';
 import Redis from 'ioredis';
 import { startRun } from './start-run.js';
@@ -108,6 +108,8 @@ export async function startOrchestrator(): Promise<void> {
 
   log.info('Orchestrator started');
 
+  const stopMetrics = startMetricsServer(Number(process.env.PORT ?? 3002));
+
   const stopTimeoutScanner = startTimeoutScanner(db, redis);
 
   try {
@@ -117,6 +119,7 @@ export async function startOrchestrator(): Promise<void> {
     ]);
   } finally {
     stopTimeoutScanner();
+    stopMetrics();
     log.info('Orchestrator shutting down');
     await db.end();
     redis.disconnect();
