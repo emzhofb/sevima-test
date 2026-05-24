@@ -2,9 +2,22 @@
   "name": "@flowforge/ai-gateway",
   "version": "0.0.1",
   "private": true,
+  "type": "module",
   "main": "src/index.ts",
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@flowforge/shared": "workspace:*",
+    "@flowforge/parser": "workspace:*",
+    "ioredis": "^5.10.1",
+    "openai": "^4.55.0"
+  },
+  "devDependencies": {
+    "@types/ioredis-mock": "^8.2.7",
+    "ioredis-mock": "^8.13.1",
+    "vitest": "^3.1.4"
   }
 }

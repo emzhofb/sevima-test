@@ -12,6 +12,7 @@ import {
 } from '../repos/workflow.repo.js';
 import { createRun } from '../repos/run.repo.js';
 import { writeAuditLog } from '../repos/audit.repo.js';
+import { publishEvent } from '@flowforge/shared';
 
 const TriggerRunSchema = z.object({
   input: z.record(z.unknown()).default({}),
@@ -252,6 +253,13 @@ export const workflowRoutes: FastifyPluginAsync = async (fastify) => {
         run_id: run.id,
         tenant_id: run.tenant_id,
       });
+
+      await publishEvent(fastify.redis, {
+        tenant_id: run.tenant_id,
+        run_id: run.id,
+        type: 'RUN_QUEUED',
+        ts: Date.now(),
+      }).catch(() => {});
 
       await writeAuditLog(fastify.db, {
         tenant_id: ctx.tenant_id,

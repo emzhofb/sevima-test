@@ -18,7 +18,7 @@ export interface Broker {
 }
 
 export class RedisStreamBroker implements Broker {
-  constructor(private redis: Redis) {}
+  constructor(public readonly redis: Redis) {}
 
   async enqueue(stream: string, payload: Record<string, string>): Promise<string> {
     const args: string[] = [];

@@ -1,5 +1,5 @@
 import { computeReadySet } from '@flowforge/parser';
-import { withTransaction } from '@flowforge/shared';
+import { withTransaction, publishEvent } from '@flowforge/shared';
 import type { Db, DbClient, Broker } from '@flowforge/shared';
 
 export type StepEvent = {
@@ -44,6 +44,8 @@ export async function handleStepEvent(db: Db, broker: Broker, event: StepEvent):
     const definition = verRes.rows[0].definition;
     const stepSpec = definition.steps.find((s: any) => s.id === event.step_id);
 
+    const redis = (broker as any).redis;
+
     // Update step_run status
     if (event.type === 'STEP_SUCCEEDED') {
       await client.query(
@@ -51,6 +53,16 @@ export async function handleStepEvent(db: Db, broker: Broker, event: StepEvent):
          WHERE run_id = $2 AND step_id = $3`,
         [event.output ?? null, event.run_id, event.step_id],
       );
+      if (redis) {
+        await publishEvent(redis, {
+          tenant_id: run.tenant_id,
+          run_id: event.run_id,
+          step_id: event.step_id,
+          type: 'STEP_SUCCEEDED',
+          ts: Date.now(),
+          payload: event.output,
+        }).catch(() => {});
+      }
     } else {
       // STEP_FAILED
       await client.query(
@@ -58,6 +70,16 @@ export async function handleStepEvent(db: Db, broker: Broker, event: StepEvent):
          WHERE run_id = $2 AND step_id = $3`,
         [event.error ?? null, event.run_id, event.step_id],
       );
+      if (redis) {
+        await publishEvent(redis, {
+          tenant_id: run.tenant_id,
+          run_id: event.run_id,
+          step_id: event.step_id,
+          type: 'STEP_FAILED',
+          ts: Date.now(),
+          payload: { error: event.error },
+        }).catch(() => {});
+      }
     }
 
     // Check if run should fail (step failed and not continue_on_failure)
@@ -65,6 +87,15 @@ export async function handleStepEvent(db: Db, broker: Broker, event: StepEvent):
       await client.query(`UPDATE runs SET status = 'FAILED', finished_at = now() WHERE id = $1`, [
         event.run_id,
       ]);
+      if (redis) {
+        await publishEvent(redis, {
+          tenant_id: run.tenant_id,
+          run_id: event.run_id,
+          type: 'RUN_FAILED',
+          ts: Date.now(),
+          payload: { error: event.error },
+        }).catch(() => {});
+      }
       return;
     }
 
@@ -85,6 +116,14 @@ export async function handleStepEvent(db: Db, broker: Broker, event: StepEvent):
         `UPDATE runs SET status = 'SUCCEEDED', finished_at = now() WHERE id = $1`,
         [event.run_id],
       );
+      if (redis) {
+        await publishEvent(redis, {
+          tenant_id: run.tenant_id,
+          run_id: event.run_id,
+          type: 'RUN_SUCCEEDED',
+          ts: Date.now(),
+        }).catch(() => {});
+      }
       return;
     }
 

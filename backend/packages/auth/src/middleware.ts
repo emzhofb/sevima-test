@@ -21,7 +21,7 @@ const authPluginCallback: FastifyPluginCallback<{ jwtSecret: string }> = (fastif
 
   fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
     const url = request.url;
-    if (url.startsWith('/health') || url.startsWith('/auth/login')) return;
+    if (url.startsWith('/health') || url.startsWith('/auth/login') || url.startsWith('/webhooks/')) return;
 
     const auth = request.headers.authorization;
     if (!auth || !auth.startsWith('Bearer ')) {

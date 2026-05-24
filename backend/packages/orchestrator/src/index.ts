@@ -108,7 +108,7 @@ export async function startOrchestrator(): Promise<void> {
 
   log.info('Orchestrator started');
 
-  const stopTimeoutScanner = startTimeoutScanner(db);
+  const stopTimeoutScanner = startTimeoutScanner(db, redis);
 
   try {
     await Promise.all([

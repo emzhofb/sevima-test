@@ -23,6 +23,7 @@ describe('loadConfig', () => {
       REDIS_URL: baseEnv.REDIS_URL,
       JWT_SECRET: baseEnv.JWT_SECRET,
       PORT: 3000,
+      AI_ENABLED: false,
     });
   });
 

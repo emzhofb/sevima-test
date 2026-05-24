@@ -2,9 +2,25 @@
   "name": "@flowforge/realtime",
   "version": "0.0.1",
   "private": true,
-  "main": "src/index.ts",
+  "type": "module",
+  "main": "src/server.ts",
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dev": "tsx watch src/server.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@flowforge/auth": "workspace:*",
+    "@flowforge/shared": "workspace:*",
+    "ioredis": "^5.10.1",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/ioredis-mock": "^8.2.7",
+    "@types/ws": "^8.5.10",
+    "ioredis-mock": "^8.13.1",
+    "tsx": "^4.19.4",
+    "vitest": "^3.1.4"
   }
 }
