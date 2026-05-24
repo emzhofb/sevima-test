@@ -2,9 +2,21 @@
   "name": "@flowforge/parser",
   "version": "0.0.1",
   "private": true,
-  "main": "src/index.ts",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "flowforge-validate": "dist/cli.js"
+  },
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@flowforge/shared": "*",
+    "yaml": "^2.4.0"
+  },
+  "devDependencies": {
+    "fast-check": "^3.15.0"
   }
 }
