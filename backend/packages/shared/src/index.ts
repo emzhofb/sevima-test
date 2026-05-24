@@ -7,4 +7,4 @@ export * from './types/index.js';
 export * from './broker.js';
 export * from './logs.js';
 export * from './events.js';
-
+export * from './metrics.js';

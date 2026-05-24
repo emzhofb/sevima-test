@@ -1,0 +1,12 @@
+{
+  "name": "flowforge",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev:all": "concurrently -n api,orch,worker,sched,rt,web -c \"blue,green,yellow,magenta,cyan,white\" \"npx.cmd pnpm@9 --dir backend -F @flowforge/api dev\" \"npx.cmd pnpm@9 --dir backend -F @flowforge/orchestrator dev\" \"npx.cmd pnpm@9 --dir backend -F @flowforge/worker dev\" \"npx.cmd pnpm@9 --dir backend -F @flowforge/scheduler dev\" \"npx.cmd pnpm@9 --dir backend -F @flowforge/realtime dev\" \"npx.cmd pnpm@9 --dir frontend dev\"",
+    "seed": "npx.cmd pnpm@9 --dir backend seed"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

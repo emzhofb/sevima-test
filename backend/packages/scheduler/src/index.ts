@@ -1,4 +1,4 @@
-import { loadConfig, createDbClient, createLogger, RedisStreamBroker } from '@flowforge/shared';
+import { loadConfig, createDbClient, createLogger, RedisStreamBroker, startMetricsServer } from '@flowforge/shared';
 import Redis from 'ioredis';
 import { schedulerTick } from './tick.js';
 
@@ -19,6 +19,8 @@ export async function startSchedulerService(intervalMs = 5000): Promise<void> {
 
   log.info('Scheduler started');
 
+  const stopMetrics = startMetricsServer(Number(process.env.PORT ?? 3004));
+
   while (running) {
     try {
       const triggered = await schedulerTick(db, broker);
@@ -32,6 +34,7 @@ export async function startSchedulerService(intervalMs = 5000): Promise<void> {
   }
 
   log.info('Scheduler shutting down');
+  stopMetrics();
   await db.end();
   redis.disconnect();
 }
