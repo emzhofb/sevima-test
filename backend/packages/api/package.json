@@ -2,6 +2,9 @@
   "name": "@flowforge/api",
   "version": "0.0.1",
   "private": true,
+  "dependencies": {
+    "@flowforge/shared": "workspace:*"
+  },
   "main": "src/index.ts",
   "scripts": {
     "build": "tsc",
