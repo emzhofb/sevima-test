@@ -8,7 +8,13 @@ const sampleDef = {
     { id: 'a', type: 'DELAY' as const, depends_on: [], config: {}, continue_on_failure: false },
     { id: 'b', type: 'DELAY' as const, depends_on: ['a'], config: {}, continue_on_failure: false },
     { id: 'c', type: 'DELAY' as const, depends_on: ['a'], config: {}, continue_on_failure: false },
-    { id: 'd', type: 'DELAY' as const, depends_on: ['b', 'c'], config: {}, continue_on_failure: false },
+    {
+      id: 'd',
+      type: 'DELAY' as const,
+      depends_on: ['b', 'c'],
+      config: {},
+      continue_on_failure: false,
+    },
   ],
 };
 

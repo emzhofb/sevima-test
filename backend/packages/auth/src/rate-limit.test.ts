@@ -84,6 +84,11 @@ describe('checkRateLimit', () => {
   });
 
   it('should respect window expiration', async () => {
+    // Wait until the start of a new second to ensure we don't cross a boundary during the test
+    const startMs = Date.now();
+    const msToNextSecond = 1000 - (startMs % 1000);
+    await new Promise((resolve) => setTimeout(resolve, msToNextSecond + 50));
+
     // Use a 1-second window for fast testing
     for (let i = 0; i < 3; i++) {
       await checkRateLimit(redis, 'window-test', 3, 1);

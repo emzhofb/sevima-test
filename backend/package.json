@@ -15,15 +15,23 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "pnpm -r lint",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^25.9.1",
     "@vitest/coverage-v8": "^4.1.7",
+    "eslint": "^10.4.0",
+    "eslint-config-prettier": "^10.1.8",
     "node-pg-migrate": "^8.0.4",
     "pg": "^8.21.0",
+    "prettier": "^3.8.3",
     "typescript": "^5.3.3",
+    "typescript-eslint": "^8.59.4",
     "vitest": "^4.1.7"
   }
 }

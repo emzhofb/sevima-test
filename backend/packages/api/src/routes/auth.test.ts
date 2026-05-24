@@ -1,17 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { hashPassword, signJwt } from '@flowforge/auth';
 import { authRoutes } from './auth.js';
 
 describe('authRoutes', () => {
   const jwtSecret = 'test-secret-key-12345';
-  const mockUser = {
-    id: '550e8400-e29b-41d4-a716-446655440010',
-    tenant_id: '550e8400-e29b-41d4-a716-446655440000',
-    email: 'user@example.com',
-    password_hash: '$argon2id$v=19$m=65536,t=3,p=1$somehashedpassword',
-    role: 'EDITOR' as const,
-    created_at: new Date('2026-05-24T00:00:00.000Z'),
-  };
 
   let mockDb: any;
   let mockFastify: any;
@@ -29,10 +20,7 @@ describe('authRoutes', () => {
 
   it('should accept POST /auth/login', async () => {
     await authRoutes(mockFastify, { jwtSecret });
-    expect(mockFastify.post).toHaveBeenCalledWith(
-      '/auth/login',
-      expect.any(Function),
-    );
+    expect(mockFastify.post).toHaveBeenCalledWith('/auth/login', expect.any(Function));
   });
 
   it('returns 400 on invalid request body', async () => {

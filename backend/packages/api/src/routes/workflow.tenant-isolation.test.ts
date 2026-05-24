@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createWorkflow, getWorkflowById, listWorkflows, updateWorkflow, deleteWorkflow } from '../repos/workflow.repo.js';
-import type { WorkflowWithVersion } from '../repos/workflow.repo.js';
+import {
+  getWorkflowById,
+  listWorkflows,
+  updateWorkflow,
+  deleteWorkflow,
+} from '../repos/workflow.repo.js';
 
 describe('tenant isolation on workflows', () => {
   let mockDb: any;
@@ -95,7 +99,9 @@ describe('tenant isolation on workflows', () => {
       if (sql.includes('WHERE tenant_id = $1 AND id = $2') && !sql.includes('UPDATE')) {
         const tenantId = params?.[0] as string;
         const workflowId = params?.[1] as string;
-        const workflow = state.workflows.find((w) => w.tenant_id === tenantId && w.id === workflowId);
+        const workflow = state.workflows.find(
+          (w) => w.tenant_id === tenantId && w.id === workflowId,
+        );
         return { rows: workflow ? [workflow] : [] };
       }
 
@@ -103,12 +109,18 @@ describe('tenant isolation on workflows', () => {
       if (sql.includes('WHERE workflow_id = $1 AND version = $2')) {
         const workflowId = params?.[0] as string;
         const version = params?.[1] as number;
-        const ver = state.versions.find((v) => v.workflow_id === workflowId && v.version === version);
+        const ver = state.versions.find(
+          (v) => v.workflow_id === workflowId && v.version === version,
+        );
         return { rows: ver ? [ver] : [] };
       }
 
       // LIST workflows by tenant (with dynamic WHERE clause for pagination)
-      if (sql.includes('SELECT * FROM workflows') && sql.includes('WHERE tenant_id = $1') && sql.includes('LIMIT')) {
+      if (
+        sql.includes('SELECT * FROM workflows') &&
+        sql.includes('WHERE tenant_id = $1') &&
+        sql.includes('LIMIT')
+      ) {
         const tenantId = params?.[0] as string;
         const pageSize = params?.[params.length - 2] as number;
         const offset = params?.[params.length - 1] as number;
@@ -127,10 +139,15 @@ describe('tenant isolation on workflows', () => {
       }
 
       // UPDATE workflow
-      if (sql.includes('UPDATE workflows') && sql.includes('SET current_version = current_version + 1')) {
+      if (
+        sql.includes('UPDATE workflows') &&
+        sql.includes('SET current_version = current_version + 1')
+      ) {
         const tenantId = params?.[0] as string;
         const workflowId = params?.[1] as string;
-        const workflow = state.workflows.find((w) => w.tenant_id === tenantId && w.id === workflowId);
+        const workflow = state.workflows.find(
+          (w) => w.tenant_id === tenantId && w.id === workflowId,
+        );
         if (workflow) {
           workflow.current_version += 1;
           workflow.updated_at = new Date();
@@ -143,7 +160,9 @@ describe('tenant isolation on workflows', () => {
       if (sql.includes('DELETE FROM workflows WHERE tenant_id = $1 AND id = $2')) {
         const tenantId = params?.[0] as string;
         const workflowId = params?.[1] as string;
-        const index = state.workflows.findIndex((w) => w.tenant_id === tenantId && w.id === workflowId);
+        const index = state.workflows.findIndex(
+          (w) => w.tenant_id === tenantId && w.id === workflowId,
+        );
         if (index > -1) {
           state.workflows.splice(index, 1);
         }
@@ -215,7 +234,7 @@ describe('tenant isolation on workflows', () => {
     // After delete - workflow B should still exist
     const afterListB = await listWorkflows(mockDb, tenantBId);
     expect(afterListB.total).toBe(1);
-    expect(afterListB.items[0].id).toBe(workflowBId);
+    expect(afterListB.items[0]?.id).toBe(workflowBId);
   });
 
   it('delete: tenant B on tenant A workflow does nothing silently', async () => {
@@ -229,6 +248,6 @@ describe('tenant isolation on workflows', () => {
     // After delete - workflow A should still exist
     const afterListA = await listWorkflows(mockDb, tenantAId);
     expect(afterListA.total).toBe(1);
-    expect(afterListA.items[0].id).toBe(workflowAId);
+    expect(afterListA.items[0]?.id).toBe(workflowAId);
   });
 });

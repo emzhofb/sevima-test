@@ -80,11 +80,13 @@ export function validateAndSortDAG(definition: WorkflowDefinition): ValidationRe
   if (sorted.length !== stepIds.size) {
     return {
       ok: false,
-      errors: [{
-        step_id: null,
-        issue: 'cycle',
-        message: 'Workflow contains a cycle',
-      }],
+      errors: [
+        {
+          step_id: null,
+          issue: 'cycle',
+          message: 'Workflow contains a cycle',
+        },
+      ],
     };
   }
 

@@ -11,7 +11,9 @@ export function detectCycles(definition: WorkflowDefinition): string[][] {
   }
 
   const cycles: string[][] = [];
-  const WHITE = 0, GRAY = 1, BLACK = 2;
+  const WHITE = 0,
+    GRAY = 1,
+    BLACK = 2;
   const color = new Map<string, number>();
   for (const id of adjacency.keys()) color.set(id, WHITE);
 

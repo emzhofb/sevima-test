@@ -27,7 +27,7 @@ describe('loadConfig', () => {
   });
 
   it('uses documented defaults for optional environment variables', () => {
-    const { NODE_ENV, PORT, ...env } = baseEnv;
+    const { NODE_ENV: _nodeEnv, PORT: _port, ...env } = baseEnv;
 
     expect(loadConfig(env)).toMatchObject({
       NODE_ENV: 'development',

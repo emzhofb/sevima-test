@@ -60,12 +60,7 @@ describe('validateAndSortDAG Unit Tests', () => {
     const def: WorkflowDefinition = {
       name: 'test',
       timeout_sec: 60,
-      steps: [
-        baseStep('a'),
-        baseStep('b', ['a']),
-        baseStep('c', ['a']),
-        baseStep('d', ['b', 'c']),
-      ],
+      steps: [baseStep('a'), baseStep('b', ['a']), baseStep('c', ['a']), baseStep('d', ['b', 'c'])],
     };
     const result = validateAndSortDAG(def);
     expect(result.ok).toBe(true);
@@ -96,57 +91,57 @@ describe('Property 2: DAG Validity Property-Based Tests', () => {
   const stepIdArb = fc.stringMatching(/^[a-z0-9]{1,10}$/);
 
   const validWorkflowArb = fc.integer({ min: 1, max: 20 }).chain((numSteps) => {
-    return fc.tuple(
-      fc.string({ minLength: 1, maxLength: 50 }), // name
-      fc.integer({ min: 1, max: 86400 }), // timeout_sec
-      fc.uniqueArray(stepIdArb, { minLength: numSteps, maxLength: numSteps }), // step IDs
-    ).chain(([name, timeout_sec, ids]) => {
-      const stepsArbs = ids.map((id, index) => {
-        const possibleDeps = ids.slice(0, index);
-        const depsArb = possibleDeps.length === 0
-          ? fc.constant([])
-          : fc.subarray(possibleDeps);
+    return fc
+      .tuple(
+        fc.string({ minLength: 1, maxLength: 50 }), // name
+        fc.integer({ min: 1, max: 86400 }), // timeout_sec
+        fc.uniqueArray(stepIdArb, { minLength: numSteps, maxLength: numSteps }), // step IDs
+      )
+      .chain(([name, timeout_sec, ids]) => {
+        const stepsArbs = ids.map((id, index) => {
+          const possibleDeps = ids.slice(0, index);
+          const depsArb = possibleDeps.length === 0 ? fc.constant([]) : fc.subarray(possibleDeps);
 
-        const typeArb = fc.constantFrom('HTTP', 'SCRIPT', 'DELAY', 'CONDITIONAL');
+          const typeArb = fc.constantFrom('HTTP', 'SCRIPT', 'DELAY', 'CONDITIONAL');
 
-        return fc.tuple(typeArb, depsArb).chain(([type, depends_on]) => {
-          let configArb: fc.Arbitrary<any>;
-          if (type === 'HTTP') {
-            configArb = fc.record({
-              method: fc.constantFrom('GET', 'POST', 'PUT', 'PATCH', 'DELETE'),
-              url: fc.constant('https://example.com'),
-            });
-          } else if (type === 'SCRIPT') {
-            configArb = fc.record({
-              language: fc.constantFrom('javascript', 'python'),
-              code: fc.constant('console.log("hello");'),
-            });
-          } else if (type === 'DELAY') {
-            configArb = fc.record({
-              duration_ms: fc.integer({ min: 1, max: 1000 }),
-            });
-          } else {
-            configArb = fc.record({
-              expr: fc.constant('true'),
-            });
-          }
+          return fc.tuple(typeArb, depsArb).chain(([type, depends_on]) => {
+            let configArb: fc.Arbitrary<any>;
+            if (type === 'HTTP') {
+              configArb = fc.record({
+                method: fc.constantFrom('GET', 'POST', 'PUT', 'PATCH', 'DELETE'),
+                url: fc.constant('https://example.com'),
+              });
+            } else if (type === 'SCRIPT') {
+              configArb = fc.record({
+                language: fc.constantFrom('javascript', 'python'),
+                code: fc.constant('console.log("hello");'),
+              });
+            } else if (type === 'DELAY') {
+              configArb = fc.record({
+                duration_ms: fc.integer({ min: 1, max: 1000 }),
+              });
+            } else {
+              configArb = fc.record({
+                expr: fc.constant('true'),
+              });
+            }
 
-          return fc.record({
-            id: fc.constant(id),
-            type: fc.constant(type),
-            depends_on: fc.constant(depends_on),
-            config: configArb,
-            continue_on_failure: fc.boolean(),
+            return fc.record({
+              id: fc.constant(id),
+              type: fc.constant(type),
+              depends_on: fc.constant(depends_on),
+              config: configArb,
+              continue_on_failure: fc.boolean(),
+            });
           });
         });
-      });
 
-      return fc.tuple(...stepsArbs).map((steps) => ({
-        name,
-        timeout_sec,
-        steps,
-      }));
-    });
+        return fc.tuple(...stepsArbs).map((steps) => ({
+          name,
+          timeout_sec,
+          steps,
+        }));
+      });
   });
 
   it('validates that any topologically constructable DAG is accepted', () => {
@@ -158,7 +153,7 @@ describe('Property 2: DAG Validity Property-Based Tests', () => {
           expect(res.sorted.length).toBe(wf.steps.length);
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -173,11 +168,13 @@ describe('Property 2: DAG Validity Property-Based Tests', () => {
           const res = validateAndSortDAG(wfWithCycle);
           expect(res.ok).toBe(false);
           if (!res.ok) {
-            expect(res.errors.some((e) => e.issue === 'cycle' || e.issue === 'dangling_dependency')).toBe(true);
+            expect(
+              res.errors.some((e) => e.issue === 'cycle' || e.issue === 'dangling_dependency'),
+            ).toBe(true);
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

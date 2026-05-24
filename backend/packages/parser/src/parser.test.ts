@@ -26,7 +26,10 @@ describe('parse', () => {
       name: 'test',
       timeout_sec: 60,
       steps: Array.from({ length: 1001 }, (_, i) => ({
-        id: `s${i}`, type: 'DELAY', depends_on: [], config: { duration_ms: 100 },
+        id: `s${i}`,
+        type: 'DELAY',
+        depends_on: [],
+        config: { duration_ms: 100 },
       })),
     };
     const result = parse(JSON.stringify(def));

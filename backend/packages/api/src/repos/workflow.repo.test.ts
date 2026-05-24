@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createWorkflow, deleteWorkflow, getWorkflowById, listWorkflows, rollbackWorkflow, updateWorkflow } from './workflow.repo.js';
+import {
+  createWorkflow,
+  deleteWorkflow,
+  getWorkflowById,
+  listWorkflows,
+  rollbackWorkflow,
+  updateWorkflow,
+} from './workflow.repo.js';
 
 describe('workflow.repo', () => {
   it('creates workflows atomically and supports rollback behavior', async () => {
@@ -12,10 +19,24 @@ describe('workflow.repo', () => {
     const state = {
       current_version: 1,
       workflowRows: [
-        { id: workflowId, tenant_id: tenantId, name: 'Flow', current_version: 1, created_at: new Date(), updated_at: new Date() },
+        {
+          id: workflowId,
+          tenant_id: tenantId,
+          name: 'Flow',
+          current_version: 1,
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
       ],
       versions: [
-        { id: '550e8400-e29b-41d4-a716-446655440101', workflow_id: workflowId, version: 1, definition, created_by: userId, created_at: new Date() },
+        {
+          id: '550e8400-e29b-41d4-a716-446655440101',
+          workflow_id: workflowId,
+          version: 1,
+          definition,
+          created_by: userId,
+          created_at: new Date(),
+        },
       ],
     };
 
@@ -39,7 +60,8 @@ describe('workflow.repo', () => {
 
       if (sql.startsWith('UPDATE workflows')) {
         state.current_version += 1;
-        const row = { ...state.workflowRows[0], current_version: state.current_version };
+        const existingRow = state.workflowRows[0]!;
+        const row = { ...existingRow, current_version: state.current_version };
         state.workflowRows[0] = row;
         return { rows: [row] };
       }
@@ -48,7 +70,9 @@ describe('workflow.repo', () => {
         return { rows: [state.workflowRows[0]] };
       }
 
-      if (sql.startsWith('SELECT * FROM workflow_versions WHERE workflow_id = $1 AND version = $2')) {
+      if (
+        sql.startsWith('SELECT * FROM workflow_versions WHERE workflow_id = $1 AND version = $2')
+      ) {
         const version = params?.[1] as number;
         return { rows: state.versions.filter((item) => item.version === version) };
       }
@@ -90,11 +114,18 @@ describe('workflow.repo', () => {
     const found = await getWorkflowById(pool as never, tenantId, workflowId);
     expect(found?.id).toBe(workflowId);
 
-    const list = await listWorkflows(pool as never, tenantId, { page: 1, pageSize: 20, name: 'Flow' });
+    const list = await listWorkflows(pool as never, tenantId, {
+      page: 1,
+      pageSize: 20,
+      name: 'Flow',
+    });
     expect(list.total).toBe(1);
 
     await deleteWorkflow(pool as never, tenantId, workflowId);
-    expect(clientQuery).toHaveBeenCalledWith('DELETE FROM workflows WHERE tenant_id = $1 AND id = $2', [tenantId, workflowId]);
+    expect(clientQuery).toHaveBeenCalledWith(
+      'DELETE FROM workflows WHERE tenant_id = $1 AND id = $2',
+      [tenantId, workflowId],
+    );
   });
 
   it('rejects invalid rollback targets', async () => {
@@ -102,7 +133,14 @@ describe('workflow.repo', () => {
       if (sql.startsWith('SELECT * FROM workflows WHERE tenant_id = $1 AND id = $2 FOR UPDATE')) {
         return {
           rows: [
-            { id: 'wf', tenant_id: 'tenant', name: 'Flow', current_version: 1, created_at: new Date(), updated_at: new Date() },
+            {
+              id: 'wf',
+              tenant_id: 'tenant',
+              name: 'Flow',
+              current_version: 1,
+              created_at: new Date(),
+              updated_at: new Date(),
+            },
           ],
         };
       }
@@ -115,6 +153,8 @@ describe('workflow.repo', () => {
       query,
     };
 
-    await expect(rollbackWorkflow(pool as never, 'tenant', 'wf', 99, 'user')).rejects.toThrow('Version 99 not found');
+    await expect(rollbackWorkflow(pool as never, 'tenant', 'wf', 99, 'user')).rejects.toThrow(
+      'Version 99 not found',
+    );
   });
 });

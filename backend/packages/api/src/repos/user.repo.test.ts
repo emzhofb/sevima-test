@@ -9,7 +9,7 @@ describe('user.repo', () => {
       tenant_id: '550e8400-e29b-41d4-a716-446655440000',
       email: 'user@example.com',
       password_hash: 'hash',
-      role: 'EDITOR',
+      role: 'EDITOR' as const,
       created_at: new Date('2026-05-24T00:00:00.000Z'),
     };
 
@@ -42,8 +42,14 @@ describe('user.repo', () => {
      VALUES ($1, $2, $3, $4) RETURNING *`,
       [user.tenant_id, user.email, user.password_hash, user.role],
     );
-    expect(query).toHaveBeenCalledWith('SELECT * FROM users WHERE tenant_id = $1 AND email = $2', [user.tenant_id, user.email]);
-    expect(query).toHaveBeenCalledWith('SELECT * FROM users WHERE tenant_id = $1 AND id = $2', [user.tenant_id, user.id]);
+    expect(query).toHaveBeenCalledWith('SELECT * FROM users WHERE tenant_id = $1 AND email = $2', [
+      user.tenant_id,
+      user.email,
+    ]);
+    expect(query).toHaveBeenCalledWith('SELECT * FROM users WHERE tenant_id = $1 AND id = $2', [
+      user.tenant_id,
+      user.id,
+    ]);
     expect(query).toHaveBeenCalledWith(
       `SELECT u.* FROM users u
      JOIN tenants t ON t.id = u.tenant_id

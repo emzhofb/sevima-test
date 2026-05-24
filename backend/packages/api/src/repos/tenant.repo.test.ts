@@ -23,18 +23,19 @@ describe('tenant.repo', () => {
 
     const db = { query };
 
+    const firstRow = rows[0]!;
     const created = await createTenant(db as never, { slug: 'acme', name: 'Acme Corp' });
     const bySlug = await getTenantBySlug(db as never, 'acme');
-    const byId = await getTenantById(db as never, rows[0].id);
+    const byId = await getTenantById(db as never, firstRow.id);
 
     expect(created.slug).toBe('acme');
     expect(bySlug?.name).toBe('Acme Corp');
-    expect(byId?.id).toBe(rows[0].id);
+    expect(byId?.id).toBe(firstRow.id);
     expect(query).toHaveBeenCalledWith(
       'INSERT INTO tenants (slug, name) VALUES ($1, $2) RETURNING *',
       ['acme', 'Acme Corp'],
     );
     expect(query).toHaveBeenCalledWith('SELECT * FROM tenants WHERE slug = $1', ['acme']);
-    expect(query).toHaveBeenCalledWith('SELECT * FROM tenants WHERE id = $1', [rows[0].id]);
+    expect(query).toHaveBeenCalledWith('SELECT * FROM tenants WHERE id = $1', [firstRow.id]);
   });
 });

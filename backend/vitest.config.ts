@@ -17,6 +17,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    exclude: ['**/node_modules/**', '**/dist/**', '**/packages/*/dist/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov', 'html'],

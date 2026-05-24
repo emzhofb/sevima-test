@@ -1,4 +1,4 @@
-import type { Db, DbClient, Run, RunStatus, StepRunStatus, TriggerType } from '@flowforge/shared';
+import type { Db, DbClient, Run, RunStatus, TriggerType } from '@flowforge/shared';
 
 const TERMINAL_RUN_STATUSES: RunStatus[] = ['SUCCEEDED', 'FAILED', 'CANCELLED', 'TIMED_OUT'];
 
@@ -34,11 +34,22 @@ export async function createRun(
     [input.tenant_id, input.workflow_id, input.version_id, input.trigger_type, input.input],
   );
 
-  return result.rows[0];
+  const run = result.rows[0];
+  if (!run) {
+    throw new Error('Failed to create run');
+  }
+  return run;
 }
 
-export async function transitionRunStatus(db: DbClient, runId: string, toStatus: RunStatus): Promise<Run> {
-  const current = await db.query<{ status: RunStatus }>('SELECT status FROM runs WHERE id = $1 FOR UPDATE', [runId]);
+export async function transitionRunStatus(
+  db: DbClient,
+  runId: string,
+  toStatus: RunStatus,
+): Promise<Run> {
+  const current = await db.query<{ status: RunStatus }>(
+    'SELECT status FROM runs WHERE id = $1 FOR UPDATE',
+    [runId],
+  );
   if (!current.rows[0]) {
     throw new Error('Run not found');
   }
@@ -59,8 +70,15 @@ export async function transitionRunStatus(db: DbClient, runId: string, toStatus:
     fields.push('finished_at = now()');
   }
 
-  const result = await db.query<Run>(`UPDATE runs SET ${fields.join(', ')} WHERE id = $1 RETURNING *`, params);
-  return result.rows[0];
+  const result = await db.query<Run>(
+    `UPDATE runs SET ${fields.join(', ')} WHERE id = $1 RETURNING *`,
+    params,
+  );
+  const run = result.rows[0];
+  if (!run) {
+    throw new Error('Failed to update run status');
+  }
+  return run;
 }
 
 export type { Run, RunStatus, TriggerType } from '@flowforge/shared';
