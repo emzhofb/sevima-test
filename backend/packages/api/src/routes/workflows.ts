@@ -63,8 +63,13 @@ export const workflowRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'invalid_query', issues: parsed.error.flatten() });
     }
 
-    const { items, total } = await listWorkflows(fastify.db, ctx.tenant_id, parsed.data);
-    return { items, total, page: parsed.data.page, pageSize: parsed.data.pageSize };
+    const { page, pageSize, name } = parsed.data;
+    const { items, total } = await listWorkflows(fastify.db, ctx.tenant_id, {
+      page,
+      pageSize,
+      ...(name !== undefined ? { name } : {}),
+    });
+    return { items, total, page, pageSize };
   });
 
   fastify.get<{ Params: { id: string }, Querystring: { version?: string } }>('/workflows/:id', { preHandler: requireRole('VIEWER') }, async (request, reply) => {
