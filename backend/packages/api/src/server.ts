@@ -1,13 +1,18 @@
 import { buildApp } from './app.js';
 import { loadConfig, createDbClient } from '@flowforge/shared';
+import Redis from 'ioredis';
 
 async function start() {
   const config = loadConfig();
   const db = createDbClient(config);
+  
+  // Use config.REDIS_URL or fallback to localhost
+  const redis = new Redis(config.REDIS_URL || 'redis://localhost:6379');
 
   const app = await buildApp({
     db,
     jwtSecret: config.JWT_SECRET,
+    redis,
   });
 
   const close = async () => {

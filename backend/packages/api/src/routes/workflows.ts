@@ -2,8 +2,13 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { requireRole } from '@flowforge/auth';
 import { parse } from '@flowforge/parser';
-import { createWorkflow, getWorkflowById, listWorkflows, updateWorkflow, rollbackWorkflow } from '../repos/workflow.repo.js';
+import { createWorkflow, getWorkflowById, listWorkflows, updateWorkflow, rollbackWorkflow, deleteWorkflow } from '../repos/workflow.repo.js';
+import { createRun } from '../repos/run.repo.js';
 import { writeAuditLog } from '../repos/audit.repo.js';
+
+const TriggerRunSchema = z.object({
+  input: z.record(z.unknown()).default({}),
+});
 
 const CreateWorkflowSchema = z.object({
   name: z.string().min(1).max(200),
@@ -179,6 +184,71 @@ export const workflowRoutes: FastifyPluginAsync = async (fastify) => {
         if (msg.includes('not found')) return reply.code(404).send({ error: 'not_found' });
         throw err;
       }
+    },
+  );
+
+  fastify.delete<{ Params: { id: string } }>(
+    '/workflows/:id',
+    { preHandler: requireRole('ADMIN') },
+    async (request, reply) => {
+      const ctx = request.ctx;
+      if (!ctx) {
+        return reply.code(401).send({ error: 'unauthorized', message: 'Missing request context' });
+      }
+
+      const deleted = await deleteWorkflow(fastify.db, ctx.tenant_id, request.params.id);
+      if (!deleted) return reply.code(404).send({ error: 'not_found' });
+
+      await writeAuditLog(fastify.db, {
+        tenant_id: ctx.tenant_id,
+        user_id: ctx.user_id,
+        action: 'workflow.delete',
+        resource_type: 'workflow',
+        resource_id: request.params.id,
+        request_id: ctx.request_id,
+      });
+
+      return reply.code(204).send();
+    },
+  );
+
+  fastify.post<{ Params: { id: string } }>(
+    '/workflows/:id/runs',
+    { preHandler: requireRole('EDITOR') },
+    async (request, reply) => {
+      const ctx = request.ctx;
+      if (!ctx) return reply.code(401).send({ error: 'unauthorized' });
+
+      const parsed = TriggerRunSchema.safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: 'invalid_input' });
+
+      const workflowId = request.params.id;
+      const wf = await getWorkflowById(fastify.db, ctx.tenant_id, workflowId);
+      if (!wf) return reply.code(404).send({ error: 'workflow_not_found' });
+
+      const run = await createRun(fastify.db, {
+        tenant_id: ctx.tenant_id,
+        workflow_id: workflowId,
+        version_id: wf.version.id,
+        trigger_type: 'MANUAL',
+        input: parsed.data.input,
+      });
+
+      await fastify.broker.enqueue('flowforge:runs', {
+        run_id: run.id,
+        tenant_id: run.tenant_id,
+      });
+
+      await writeAuditLog(fastify.db, {
+        tenant_id: ctx.tenant_id,
+        user_id: ctx.user_id,
+        action: 'run.trigger',
+        resource_type: 'run',
+        resource_id: run.id,
+        request_id: ctx.request_id,
+      });
+
+      return reply.code(202).send({ run_id: run.id });
     },
   );
 };

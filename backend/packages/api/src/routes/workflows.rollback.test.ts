@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import RedisMock from 'ioredis-mock';
 import { buildApp } from '../app.js';
 import { buildAuthToken } from '../test/auth-helpers.js';
 
@@ -136,7 +137,7 @@ describe('POST /workflows/:id/rollback route', () => {
       }),
     };
 
-    app = await buildApp({ db: mockDb, jwtSecret });
+    app = await buildApp({ db: mockDb, jwtSecret, redis: new RedisMock() as any });
   });
 
   it('returns 200 and rolls back to target version', async () => {

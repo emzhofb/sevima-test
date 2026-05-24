@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import RedisMock from 'ioredis-mock';
 import { buildApp } from '../app.js';
 import { createTestTenantAndUser, buildAuthToken } from '../test/auth-helpers.js';
 
@@ -86,6 +87,7 @@ describe('workflows.create route', () => {
     app = await buildApp({
       db: mockDb,
       jwtSecret,
+      redis: new RedisMock() as any,
     });
   });
 

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import RedisMock from 'ioredis-mock';
 import { buildApp } from './app.js';
 
 describe('Fastify app configuration', () => {
@@ -13,6 +14,7 @@ describe('Fastify app configuration', () => {
     app = await buildApp({
       db: mockDb,
       jwtSecret: 'test-secret',
+      redis: new RedisMock() as any,
     });
   });
 
