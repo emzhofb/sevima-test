@@ -2,12 +2,18 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { requireRole } from '@flowforge/auth';
 import { parse } from '@flowforge/parser';
-import { createWorkflow, getWorkflowById } from '../repos/workflow.repo.js';
+import { createWorkflow, getWorkflowById, listWorkflows } from '../repos/workflow.repo.js';
 import { writeAuditLog } from '../repos/audit.repo.js';
 
 const CreateWorkflowSchema = z.object({
   name: z.string().min(1).max(200),
   definition: z.unknown(),
+});
+
+const ListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  name: z.string().optional(),
 });
 
 export const workflowRoutes: FastifyPluginAsync = async (fastify) => {
@@ -44,6 +50,21 @@ export const workflowRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     return reply.code(201).send(wf);
+  });
+
+  fastify.get('/workflows', { preHandler: requireRole('VIEWER') }, async (request, reply) => {
+    const ctx = request.ctx;
+    if (!ctx) {
+      return reply.code(401).send({ error: 'unauthorized', message: 'Missing request context' });
+    }
+
+    const parsed = ListQuerySchema.safeParse(request.query);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'invalid_query', issues: parsed.error.flatten() });
+    }
+
+    const { items, total } = await listWorkflows(fastify.db, ctx.tenant_id, parsed.data);
+    return { items, total, page: parsed.data.page, pageSize: parsed.data.pageSize };
   });
 
   fastify.get<{ Params: { id: string }, Querystring: { version?: string } }>('/workflows/:id', { preHandler: requireRole('VIEWER') }, async (request, reply) => {
