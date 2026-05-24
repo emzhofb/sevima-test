@@ -1,5 +1,8 @@
 import Fastify from 'fastify';
 import type { Db } from '@flowforge/shared';
+import { authPlugin } from '@flowforge/auth';
+import { authRoutes } from './routes/auth.js';
+import { workflowRoutes } from './routes/workflows.js';
 
 export interface ApiAppOptions {
   db: Db;
@@ -20,6 +23,13 @@ export async function buildApp(opts: ApiAppOptions) {
 
   // Attach database to app context
   app.decorate('db', opts.db);
+
+  // Register Auth Plugin
+  await app.register(authPlugin, { jwtSecret: opts.jwtSecret });
+
+  // Register Routes
+  await app.register(authRoutes, { jwtSecret: opts.jwtSecret });
+  await app.register(workflowRoutes);
 
   // Health check endpoint
   app.get('/health', async () => {
