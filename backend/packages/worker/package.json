@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@flowforge/api": "workspace:*",
     "@flowforge/shared": "workspace:*",
     "expr-eval": "^2.0.2",
     "ioredis": "^5.10.1"

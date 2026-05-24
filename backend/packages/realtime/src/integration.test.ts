@@ -95,4 +95,28 @@ describe('Realtime WebSocket E2E Integration', () => {
     wsA.close();
     wsB.close();
   });
+
+  it('heartbeat timeout scenario: client is disconnected if no pong response is received', async () => {
+    const shortPort = 3009;
+    const shortServer = createRealtimeServer({
+      port: shortPort,
+      db: mockDb,
+      redis: redisSub,
+      heartbeatInterval: 50,
+      heartbeatTimeout: 100,
+    });
+
+    const ws = new WebSocket(`ws://localhost:${shortPort}/ws?token=${tokenA}`);
+    ws.pong = () => {}; // Disable client-side auto-pong reply
+
+    await new Promise<void>((r) => ws.on('open', r));
+
+    const closed = await new Promise<boolean>((resolve) => {
+      ws.on('close', () => resolve(true));
+      setTimeout(() => resolve(false), 500);
+    });
+
+    expect(closed).toBe(true);
+    shortServer.wss.close();
+  });
 });

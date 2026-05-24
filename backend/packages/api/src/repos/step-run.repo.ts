@@ -1,7 +1,10 @@
-import type { Db, StepRun, StepRunStatus } from '@flowforge/shared';
+import type { Db, DbClient, StepRun, StepRunStatus } from '@flowforge/shared';
+import { IllegalStateTransitionError } from './run.repo.js';
+
+export { IllegalStateTransitionError };
 
 export async function createStepRun(
-  db: Db,
+  db: Db | DbClient,
   input: {
     run_id: string;
     tenant_id: string;
@@ -22,8 +25,83 @@ export async function createStepRun(
   return stepRun;
 }
 
+export async function transitionStepRunStatus(
+  db: Db | DbClient,
+  runId: string,
+  stepId: string,
+  toStatus: StepRunStatus,
+  patch: {
+    attempt?: number;
+    output?: unknown;
+    error?: string | null;
+  } = {},
+): Promise<StepRun> {
+  const current = await db.query<{ status: StepRunStatus }>(
+    'SELECT status FROM step_runs WHERE run_id = $1 AND step_id = $2 FOR UPDATE',
+    [runId, stepId],
+  );
+  if (!current.rows[0]) {
+    throw new Error(`Step run not found: run_id=${runId}, step_id=${stepId}`);
+  }
+
+  const fromStatus = current.rows[0].status;
+
+  const VALID_TRANSITIONS: Record<StepRunStatus, StepRunStatus[]> = {
+    PENDING: ['READY', 'RUNNING', 'SKIPPED'],
+    READY: ['RUNNING', 'SKIPPED'],
+    RUNNING: ['SUCCEEDED', 'FAILED', 'READY', 'SKIPPED'],
+    SUCCEEDED: [],
+    FAILED: [],
+    SKIPPED: [],
+  };
+
+  if (!VALID_TRANSITIONS[fromStatus].includes(toStatus)) {
+    throw new IllegalStateTransitionError(fromStatus, toStatus);
+  }
+
+  const fields: string[] = ['status = $3'];
+  const params: unknown[] = [runId, stepId, toStatus];
+
+  if (toStatus === 'RUNNING') {
+    fields.push('started_at = COALESCE(started_at, now())');
+    fields.push('last_heartbeat_at = now()');
+  }
+
+  if (toStatus === 'SUCCEEDED' || toStatus === 'FAILED' || toStatus === 'SKIPPED') {
+    fields.push('finished_at = now()');
+  }
+
+  if (patch.attempt !== undefined) {
+    params.push(patch.attempt);
+    fields.push(`attempt = $${params.length}`);
+  }
+
+  if (patch.output !== undefined) {
+    params.push(patch.output);
+    fields.push(`output = $${params.length}`);
+  }
+
+  if (patch.error !== undefined) {
+    params.push(patch.error);
+    fields.push(`error = $${params.length}`);
+  }
+
+  const result = await db.query<StepRun>(
+    `UPDATE step_runs SET ${fields.join(', ')}
+     WHERE run_id = $1 AND step_id = $2
+     RETURNING *`,
+    params,
+  );
+
+  const stepRun = result.rows[0];
+  if (!stepRun) {
+    throw new Error('Failed to update step run status');
+  }
+  return stepRun;
+}
+
 export async function updateStepRun(
-  db: Db,
+  db: Db | DbClient,
   stepRunId: string,
   patch: {
     status?: StepRunStatus;
@@ -74,7 +152,7 @@ export async function updateStepRun(
   return stepRun;
 }
 
-export async function listStepRuns(db: Db, tenantId: string, runId: string): Promise<StepRun[]> {
+export async function listStepRuns(db: Db | DbClient, tenantId: string, runId: string): Promise<StepRun[]> {
   const result = await db.query<StepRun>(
     `SELECT * FROM step_runs
      WHERE tenant_id = $1 AND run_id = $2

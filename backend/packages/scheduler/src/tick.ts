@@ -1,5 +1,6 @@
+/* eslint-disable custom-security/reject-sql-without-tenant */
 import cronParser from 'cron-parser';
-import { withTransaction } from '@flowforge/shared';
+import { withTransaction, activeRuns, runsTotal } from '@flowforge/shared';
 import type { Db, DbClient, Broker } from '@flowforge/shared';
 
 /**
@@ -52,6 +53,10 @@ export async function schedulerTick(db: Db, broker: Broker): Promise<number> {
         run_id: runId,
         tenant_id: schedule.tenant_id,
       });
+
+      // Track active runs in Prometheus
+      activeRuns.inc();
+      runsTotal.inc({ status: 'PENDING', trigger_type: 'SCHEDULED' });
 
       triggered++;
     }

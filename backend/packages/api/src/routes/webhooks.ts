@@ -8,7 +8,7 @@ import {
   verifyWebhookSignatureHmac,
 } from '../repos/webhook.repo.js';
 import { createHmac, timingSafeEqual } from 'crypto';
-import { publishEvent } from '@flowforge/shared';
+import { publishEvent, activeRuns, runsTotal } from '@flowforge/shared';
 
 export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /workflows/:id/webhook/rotate-secret
@@ -88,6 +88,10 @@ export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
         run_id: run.id,
         tenant_id: wf.tenant_id,
       });
+
+      // Track active runs in Prometheus
+      activeRuns.inc();
+      runsTotal.inc({ status: 'PENDING', trigger_type: 'WEBHOOK' });
 
       await publishEvent(fastify.redis, {
         tenant_id: wf.tenant_id,

@@ -46,15 +46,13 @@ describe('orchestrator E2E', () => {
         processedEvents.add(eventId);
         return { rows: [{ event_id: eventId }] };
       }
-      if (sql.includes("UPDATE step_runs SET status = 'SUCCEEDED'")) {
-        const stepId = params?.[2] as string;
-        stepRunsMap[stepId] = 'SUCCEEDED';
-        return { rows: [] };
-      }
-      if (sql.includes("UPDATE step_runs SET status = 'FAILED'")) {
-        const stepId = params?.[2] as string;
-        stepRunsMap[stepId] = 'FAILED';
-        return { rows: [] };
+      if (sql.includes("UPDATE step_runs SET")) {
+        const stepId = params?.[1] as string;
+        const status = params?.[2] as string;
+        if (stepId) {
+          stepRunsMap[stepId] = status;
+        }
+        return { rows: [{ id: 'step-run-1', run_id: 'run-1', tenant_id: 't1', step_id: stepId, status }] };
       }
       if (sql.includes("UPDATE runs SET status = 'SUCCEEDED'")) {
         runStatus = 'SUCCEEDED';
@@ -73,7 +71,7 @@ describe('orchestrator E2E', () => {
       }
       if (sql.includes('SELECT status FROM step_runs WHERE run_id')) {
         const stepId = params?.[1] as string;
-        const existing = stepRunsMap[stepId];
+        const existing = stepRunsMap[stepId] || (sql.includes('FOR UPDATE') ? 'RUNNING' : undefined);
         return { rows: existing ? [{ status: existing }] : [] };
       }
       if (sql.includes('INSERT INTO step_runs')) {
@@ -173,10 +171,18 @@ describe('orchestrator E2E', () => {
         processedEvents.add(eventId);
         return { rows: [{ event_id: eventId }] };
       }
-      if (sql.includes("UPDATE step_runs SET status = 'FAILED'")) {
-        const stepId = params?.[2] as string;
-        stepRunsMap[stepId] = 'FAILED';
-        return { rows: [] };
+      if (sql.includes('SELECT status FROM step_runs WHERE run_id')) {
+        const stepId = params?.[1] as string;
+        const existing = stepRunsMap[stepId] || (sql.includes('FOR UPDATE') ? 'RUNNING' : undefined);
+        return { rows: existing ? [{ status: existing }] : [] };
+      }
+      if (sql.includes("UPDATE step_runs SET")) {
+        const stepId = params?.[1] as string;
+        const status = params?.[2] as string;
+        if (stepId) {
+          stepRunsMap[stepId] = status;
+        }
+        return { rows: [{ id: 'step-run-1', run_id: 'run-1', tenant_id: 't1', step_id: stepId, status }] };
       }
       if (sql.includes("UPDATE runs SET status = 'FAILED'")) {
         runStatus = 'FAILED';

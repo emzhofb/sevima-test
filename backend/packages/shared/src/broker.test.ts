@@ -66,4 +66,22 @@ describe('RedisStreamBroker', () => {
     await broker.ack('test-stream', 'test-group', '12345-0');
     expect(redis.xack).toHaveBeenCalledWith('test-stream', 'test-group', '12345-0');
   });
+
+  it('enqueueDelayed adds to sorted set and pollDelayed processes it', async () => {
+    const realRedis = new RedisMock();
+    redis.zadd = realRedis.zadd.bind(realRedis);
+    redis.zrangebyscore = realRedis.zrangebyscore.bind(realRedis);
+    redis.zrem = realRedis.zrem.bind(realRedis);
+
+    await broker.enqueueDelayed('test-stream', { run_id: 'r1' }, 50);
+
+    const polled0 = await broker.pollDelayed();
+    expect(polled0).toBe(0);
+
+    await new Promise((r) => setTimeout(r, 60));
+
+    const polled1 = await broker.pollDelayed();
+    expect(polled1).toBe(1);
+    expect(redis.xadd).toHaveBeenCalledWith('test-stream', '*', 'run_id', 'r1');
+  });
 });

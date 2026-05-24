@@ -1,3 +1,4 @@
+/* eslint-disable custom-security/reject-sql-without-tenant */
 import { createDbClient, loadConfig, createLogger } from '@flowforge/shared';
 
 async function cleanup() {

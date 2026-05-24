@@ -46,16 +46,13 @@ function makeMocks(runStatus: string = 'RUNNING', initialCompleted: string[] = [
       return { rows: [{ definition: WORKFLOW_DEF }] };
     }
 
-    if (sql.includes("UPDATE step_runs SET status = 'SUCCEEDED'")) {
-      const stepId = params?.[2] as string;
-      stepStatuses[stepId] = 'SUCCEEDED';
-      return { rows: [] };
-    }
-
-    if (sql.includes("UPDATE step_runs SET status = 'FAILED'")) {
-      const stepId = params?.[2] as string;
-      stepStatuses[stepId] = 'FAILED';
-      return { rows: [] };
+    if (sql.includes("UPDATE step_runs SET")) {
+      const stepId = params?.[1] as string;
+      const status = params?.[2] as string;
+      if (stepId) {
+        stepStatuses[stepId] = status;
+      }
+      return { rows: [{ id: 'step-run-1', run_id: 'run-1', tenant_id: 't1', step_id: stepId, status }] };
     }
 
     if (sql.includes("UPDATE runs SET status = 'FAILED'")) {
@@ -80,7 +77,7 @@ function makeMocks(runStatus: string = 'RUNNING', initialCompleted: string[] = [
     // Check if a step_run already exists (to avoid duplicate enqueue)
     if (sql.includes('SELECT status FROM step_runs WHERE run_id')) {
       const stepId = params?.[1] as string;
-      const status = stepStatuses[stepId];
+      const status = stepStatuses[stepId] || (sql.includes('FOR UPDATE') ? 'RUNNING' : undefined);
       return { rows: status ? [{ status }] : [] };
     }
 
