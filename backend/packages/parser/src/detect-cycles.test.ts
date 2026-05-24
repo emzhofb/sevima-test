@@ -14,11 +14,7 @@ describe('detectCycles', () => {
     const def = {
       name: 'no-cycle',
       timeout_sec: 60,
-      steps: [
-        baseStep('a'),
-        baseStep('b', ['a']),
-        baseStep('c', ['b']),
-      ],
+      steps: [baseStep('a'), baseStep('b', ['a']), baseStep('c', ['b'])],
     };
     const cycles = detectCycles(def);
     expect(cycles.length).toBe(0);
@@ -28,9 +24,7 @@ describe('detectCycles', () => {
     const def = {
       name: 'self-loop',
       timeout_sec: 60,
-      steps: [
-        baseStep('a', ['a']),
-      ],
+      steps: [baseStep('a', ['a'])],
     };
     const cycles = detectCycles(def);
     expect(cycles.length).toBeGreaterThan(0);
@@ -41,10 +35,7 @@ describe('detectCycles', () => {
     const def = {
       name: 'cycle-2',
       timeout_sec: 60,
-      steps: [
-        baseStep('a', ['b']),
-        baseStep('b', ['a']),
-      ],
+      steps: [baseStep('a', ['b']), baseStep('b', ['a'])],
     };
     const cycles = detectCycles(def);
     expect(cycles.length).toBeGreaterThan(0);
@@ -56,11 +47,7 @@ describe('detectCycles', () => {
     const def = {
       name: 'nested-cycles',
       timeout_sec: 60,
-      steps: [
-        baseStep('a', ['c']),
-        baseStep('b', ['a']),
-        baseStep('c', ['b']),
-      ],
+      steps: [baseStep('a', ['c']), baseStep('b', ['a']), baseStep('c', ['b'])],
     };
     const cycles = detectCycles(def);
     expect(cycles.length).toBeGreaterThan(0);

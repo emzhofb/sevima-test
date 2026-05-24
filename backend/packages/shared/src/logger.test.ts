@@ -16,11 +16,7 @@ function captureLogs() {
 
   return {
     destination,
-    readLines: () =>
-      chunks
-        .join('')
-        .split('\n')
-        .filter(Boolean),
+    readLines: () => chunks.join('').split('\n').filter(Boolean),
   };
 }
 

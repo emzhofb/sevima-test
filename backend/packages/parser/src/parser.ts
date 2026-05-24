@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { WorkflowDefinitionSchema, type WorkflowDefinition } from '@flowforge/shared';
 import { validateAndSortDAG } from './validate.js';
 import { validateStepConfig } from './step-configs.js';
-import type { ValidationResult, ValidationError } from './types.js';
+import type { ValidationError } from './types.js';
 
 const MAX_INPUT_BYTES = 5 * 1024 * 1024;
 const MAX_STEPS = 1000;
@@ -122,7 +122,13 @@ export function parseFromJson(input: string): ParseResult {
   } catch (err) {
     return {
       ok: false,
-      errors: [{ step_id: null, issue: 'type_mismatch', message: `Invalid JSON: ${(err as Error).message}` }],
+      errors: [
+        {
+          step_id: null,
+          issue: 'type_mismatch',
+          message: `Invalid JSON: ${(err as Error).message}`,
+        },
+      ],
     };
   }
 
@@ -139,7 +145,13 @@ export function parseFromYaml(input: string): ParseResult {
   } catch (err) {
     return {
       ok: false,
-      errors: [{ step_id: null, issue: 'type_mismatch', message: `Invalid YAML: ${(err as Error).message}` }],
+      errors: [
+        {
+          step_id: null,
+          issue: 'type_mismatch',
+          message: `Invalid YAML: ${(err as Error).message}`,
+        },
+      ],
     };
   }
 

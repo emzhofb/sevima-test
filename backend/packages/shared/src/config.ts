@@ -33,9 +33,7 @@ export function loadConfig(env: ConfigSource = process.env): Config {
   return result.data;
 }
 
-function formatConfigIssues(
-  issues: z.typeToFlattenedError<ConfigSource>['fieldErrors'],
-): string {
+function formatConfigIssues(issues: z.typeToFlattenedError<ConfigSource>['fieldErrors']): string {
   return Object.entries(issues)
     .map(([field, messages]) => `${field}: ${messages?.join(', ') ?? 'invalid'}`)
     .join('; ');

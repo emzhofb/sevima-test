@@ -60,9 +60,7 @@ describe('Error Taxonomy', () => {
       input: {
         name: 't',
         timeout_sec: 100000,
-        steps: [
-          { id: 'a', type: 'DELAY', depends_on: [], config: { duration_ms: 100 } },
-        ],
+        steps: [{ id: 'a', type: 'DELAY', depends_on: [], config: { duration_ms: 100 } }],
       },
       expectedIssue: 'out_of_range',
     },
@@ -71,9 +69,7 @@ describe('Error Taxonomy', () => {
       input: {
         name: 't',
         timeout_sec: 60,
-        steps: [
-          { id: 'a', type: 'UNKNOWN', depends_on: [], config: {} },
-        ],
+        steps: [{ id: 'a', type: 'UNKNOWN', depends_on: [], config: {} }],
       },
       expectedIssue: 'unknown_step_type',
     },

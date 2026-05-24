@@ -13,7 +13,9 @@ describe('007_processed_events migration', () => {
 
     expect(migration).toContain("pgm.createTable('processed_events'");
     expect(migration).toContain("event_id: { type: 'varchar(100)', primaryKey: true }");
-    expect(migration).toContain("processed_at: { type: 'timestamptz', notNull: true, default: pgm.func('now()') }");
+    expect(migration).toContain(
+      "processed_at: { type: 'timestamptz', notNull: true, default: pgm.func('now()') }",
+    );
     expect(migration).toContain("pgm.createIndex('processed_events', 'processed_at');");
     expect(migration).toContain("pgm.dropTable('processed_events');");
   });

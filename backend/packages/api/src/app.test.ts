@@ -23,7 +23,7 @@ describe('Fastify app configuration', () => {
   });
 
   it('rejects body > 1 MB with 413', async () => {
-    app.post('/test', async (request, reply) => {
+    app.post('/test', async () => {
       return { success: true };
     });
 
@@ -43,7 +43,7 @@ describe('Fastify app configuration', () => {
   });
 
   it('accepts body < 1 MB', async () => {
-    app.post('/test', async (request, reply) => {
+    app.post('/test', async () => {
       return { success: true };
     });
 

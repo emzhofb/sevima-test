@@ -1,15 +1,16 @@
 import type { Db, Tenant } from '@flowforge/shared';
 
-export async function createTenant(
-  db: Db,
-  input: { slug: string; name: string },
-): Promise<Tenant> {
+export async function createTenant(db: Db, input: { slug: string; name: string }): Promise<Tenant> {
   const result = await db.query<Tenant>(
     'INSERT INTO tenants (slug, name) VALUES ($1, $2) RETURNING *',
     [input.slug, input.name],
   );
 
-  return result.rows[0];
+  const tenant = result.rows[0];
+  if (!tenant) {
+    throw new Error('Failed to create tenant');
+  }
+  return tenant;
 }
 
 export async function getTenantBySlug(db: Db, slug: string): Promise<Tenant | null> {

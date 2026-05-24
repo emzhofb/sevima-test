@@ -15,7 +15,11 @@ export async function createStepRun(
     [input.run_id, input.tenant_id, input.step_id, input.attempt ?? 1],
   );
 
-  return result.rows[0];
+  const stepRun = result.rows[0];
+  if (!stepRun) {
+    throw new Error('Failed to create step run');
+  }
+  return stepRun;
 }
 
 export async function updateStepRun(
@@ -63,5 +67,9 @@ export async function updateStepRun(
     params,
   );
 
-  return result.rows[0];
+  const stepRun = result.rows[0];
+  if (!stepRun) {
+    throw new Error('Failed to update step run');
+  }
+  return stepRun;
 }

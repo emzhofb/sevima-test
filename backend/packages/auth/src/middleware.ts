@@ -16,12 +16,8 @@ const ROLE_HIERARCHY: Record<Role, number> = {
   ADMIN: 3,
 };
 
-const authPluginCallback: FastifyPluginCallback<{ jwtSecret: string }> = (
-  fastify,
-  opts,
-  done,
-) => {
-  fastify.decorateRequest('ctx', null);
+const authPluginCallback: FastifyPluginCallback<{ jwtSecret: string }> = (fastify, opts, done) => {
+  fastify.decorateRequest('ctx', undefined);
 
   fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
     const url = request.url;
@@ -29,7 +25,9 @@ const authPluginCallback: FastifyPluginCallback<{ jwtSecret: string }> = (
 
     const auth = request.headers.authorization;
     if (!auth || !auth.startsWith('Bearer ')) {
-      return reply.code(401).send({ error: 'unauthorized', message: 'Missing or malformed Authorization header' });
+      return reply
+        .code(401)
+        .send({ error: 'unauthorized', message: 'Missing or malformed Authorization header' });
     }
 
     const token = auth.slice('Bearer '.length);

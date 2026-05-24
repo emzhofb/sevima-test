@@ -15,6 +15,9 @@ export async function createWorkflow(
     );
 
     const workflow = wfRes.rows[0];
+    if (!workflow) {
+      throw new Error('Failed to create workflow');
+    }
 
     const versionRes = await client.query<WorkflowVersion>(
       `INSERT INTO workflow_versions (workflow_id, version, definition, created_by)
@@ -22,7 +25,12 @@ export async function createWorkflow(
       [workflow.id, input.definition, input.created_by],
     );
 
-    return { ...workflow, version: versionRes.rows[0] };
+    const version = versionRes.rows[0];
+    if (!version) {
+      throw new Error('Failed to create workflow version');
+    }
+
+    return { ...workflow, version };
   });
 }
 
@@ -32,7 +40,10 @@ export async function getWorkflowById(
   id: string,
   version?: number,
 ): Promise<WorkflowWithVersion | null> {
-  const wfRes = await db.query<Workflow>('SELECT * FROM workflows WHERE tenant_id = $1 AND id = $2', [tenantId, id]);
+  const wfRes = await db.query<Workflow>(
+    'SELECT * FROM workflows WHERE tenant_id = $1 AND id = $2',
+    [tenantId, id],
+  );
   const workflow = wfRes.rows[0];
 
   if (!workflow) {
@@ -40,7 +51,10 @@ export async function getWorkflowById(
   }
 
   const targetVersion = version ?? workflow.current_version;
-  const verRes = await db.query<WorkflowVersion>('SELECT * FROM workflow_versions WHERE workflow_id = $1 AND version = $2', [id, targetVersion]);
+  const verRes = await db.query<WorkflowVersion>(
+    'SELECT * FROM workflow_versions WHERE workflow_id = $1 AND version = $2',
+    [id, targetVersion],
+  );
 
   if (!verRes.rows[0]) {
     return null;
@@ -76,7 +90,12 @@ export async function updateWorkflow(
       [id, workflow.current_version, definition, userId],
     );
 
-    return { ...workflow, version: versionRes.rows[0] };
+    const version = versionRes.rows[0];
+    if (!version) {
+      throw new Error('Failed to update workflow version');
+    }
+
+    return { ...workflow, version };
   });
 }
 
@@ -108,11 +127,17 @@ export async function listWorkflows(
     params,
   );
 
-  const totalRes = await db.query<{ count: string }>(`SELECT COUNT(*)::text as count FROM workflows WHERE ${where}`, params.slice(0, params.length - 2));
+  const totalRes = await db.query<{ count: string }>(
+    `SELECT COUNT(*)::text as count FROM workflows WHERE ${where}`,
+    params.slice(0, params.length - 2),
+  );
+
+  const totalRow = totalRes.rows[0];
+  const total = totalRow ? Number(totalRow.count) : 0;
 
   return {
     items: itemsRes.rows,
-    total: Number(totalRes.rows[0].count),
+    total,
   };
 }
 
@@ -157,6 +182,9 @@ export async function rollbackWorkflow(
     );
 
     const updatedWorkflow = updatedRes.rows[0];
+    if (!updatedWorkflow) {
+      throw new Error('Failed to update workflow during rollback');
+    }
 
     const versionRes = await client.query<WorkflowVersion>(
       `INSERT INTO workflow_versions (workflow_id, version, definition, created_by)
@@ -164,6 +192,11 @@ export async function rollbackWorkflow(
       [workflowId, updatedWorkflow.current_version, target.definition, userId],
     );
 
-    return { ...updatedWorkflow, version: versionRes.rows[0] };
+    const version = versionRes.rows[0];
+    if (!version) {
+      throw new Error('Failed to insert workflow version for rollback');
+    }
+
+    return { ...updatedWorkflow, version };
   });
 }

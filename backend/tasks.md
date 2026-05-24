@@ -49,7 +49,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Buat helper `withTenantScope(tx, tenantId, query)` yang otomatis menambahkan predikat `tenant_id = $tenantId`
     - Tambahkan runtime assertion + audit log entry ketika query terhadap tabel tenant-scoped dieksekusi tanpa scope (lempar exception, jangan commit)
     - _Requirements: 4.5, 2.1_
-  - [ ]* 2.5 Tulis unit tests untuk schema validator + repository scope guard
+  - [ ]\* 2.5 Tulis unit tests untuk schema validator + repository scope guard
     - Test `Tenant.slug` regex, `RetryPolicy.max_attempts` boundary, `timeout_sec` boundary
     - Test repository melempar error ketika dipanggil tanpa `tenantId`
     - _Requirements: 1.9, 4.5, 4.6_
@@ -67,17 +67,17 @@ Convert the feature design into a series of prompts for a code-generation LLM th
   - [x] 3.3 Implementasikan `topologicalSort` dan `computeReadySet` sebagai API publik
     - Ekspor sebagai pure function untuk dipakai orchestrator
     - _Requirements: 1.2_
-  - [x]* 3.4 Tulis property test untuk Property 2 (DAG Validity)
+  - [x]\* 3.4 Tulis property test untuk Property 2 (DAG Validity)
     - **Property 2: DAG Validity** — `∀ workflow w yang ter-persist: validateAndSortDAG(w.definition).ok = true`
     - Generator: random DAG (mix valid + invalid); assert parser hanya menerima yang `ok = true`
     - **Validates: Requirements 1.1**
-  - [x]* 3.5 Tulis property test untuk parser round-trip
+  - [x]\* 3.5 Tulis property test untuk parser round-trip
     - Generator: `WorkflowDefinition` valid acak; assert `parse(serialize(d, fmt))` ekivalen field-by-field dengan `d` untuk `fmt ∈ { JSON, YAML }`
     - **Validates: Requirements 9.1**
-  - [x]* 3.6 Tulis property test untuk pretty-print idempotence
+  - [x]\* 3.6 Tulis property test untuk pretty-print idempotence
     - Assert `prettyPrint(parse(prettyPrint(parse(input))))` byte-identical dengan `prettyPrint(parse(input))`
     - **Validates: Requirements 9.2**
-  - [x]* 3.7 Tulis unit tests untuk error taxonomy dan input limits
+  - [x]\* 3.7 Tulis unit tests untuk error taxonomy dan input limits
     - Test setiap kategori error muncul untuk input yang sesuai (cycle, dangling, duplicate, unknown_step_type, dst.)
     - Test penolakan input > 5 MB dan > 1000 steps
     - _Requirements: 1.4, 1.9, 9.3, 9.4_
@@ -87,7 +87,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Eksponensial dengan cap `policy.backoff_max_ms`, full jitter ketika `policy.jitter = true`
     - Validasi precondition: `attempt >= 1`, `backoff_base_ms > 0`, `backoff_max_ms >= backoff_base_ms`
     - _Requirements: 1.3_
-  - [ ]* 4.2 Tulis property test untuk Property 6 (Backoff Bounded)
+  - [ ]\* 4.2 Tulis property test untuk Property 6 (Backoff Bounded)
     - **Property 6: Backoff Bounded** — `∀ attempt a, ∀ policy p: 0 <= computeBackoff(a, p) <= p.backoff_max_ms`
     - **Validates: Requirements 1.3**
 
@@ -118,19 +118,19 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Worker mengirim heartbeat ke Redis tiap N detik; orchestrator periodically scan `step_runs` dengan `RUNNING` tanpa heartbeat aktif → kembalikan ke `READY` untuk attempt berikutnya
     - Pastikan step `SUCCEEDED` / `SKIPPED` tidak dijalankan ulang
     - _Requirements: 1.11_
-  - [ ]* 6.7 Tulis property test untuk Property 3 (Topological Execution)
+  - [ ]\* 6.7 Tulis property test untuk Property 3 (Topological Execution)
     - **Property 3: Topological Execution** — `∀ run r, ∀ step s yang transitions ke RUNNING: ∀ d ∈ s.depends_on, ∃ step_run sd dengan sd.status ∈ {SUCCEEDED, SKIPPED} pada t' < t`
     - Generator: DAG valid acak + simulator orchestrator; assert urutan eksekusi menghormati `depends_on`
     - **Validates: Requirements 1.2**
-  - [ ]* 6.8 Tulis property test untuk Property 5 (Run Status Monotonicity)
+  - [ ]\* 6.8 Tulis property test untuk Property 5 (Run Status Monotonicity)
     - **Property 5: Run Status Monotonicity** — Transisi mengikuti FSM `PENDING → RUNNING → terminal` dan status terminal tidak berubah lagi
     - Generator: urutan event acak; assert tidak ada transisi ilegal yang berhasil
     - **Validates: Requirements 1.2**
-  - [ ]* 6.9 Tulis property test untuk Property 9 (Idempotency Event Handler)
+  - [ ]\* 6.9 Tulis property test untuk Property 9 (Idempotency Event Handler)
     - **Property 9: Idempotency** — `applyEvent(e, ..., applyEvent(e, state)) ≡ applyEvent(e, state)`
     - Generator: urutan event dengan duplikat acak; assert state akhir identik dengan state setelah dedup
     - **Validates: Requirements 1.2**
-  - [ ]* 6.10 Tulis unit tests untuk FSM edge cases (timeout, cancel, continue_on_failure, recovery)
+  - [ ]\* 6.10 Tulis unit tests untuk FSM edge cases (timeout, cancel, continue_on_failure, recovery)
     - Test transisi terminal, `continue_on_failure = true/false`, recovery worker crash
     - _Requirements: 1.5, 1.6, 1.7, 1.8, 1.11_
 
@@ -154,11 +154,11 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Sebelum tulis ke Log Store, redact value yang match secret pattern → `***REDACTED***`
     - Aktif bahkan pada level `DEBUG`
     - _Requirements: 7.5_
-  - [ ]* 7.6 Tulis property test untuk Property 4 (Retry Bounded)
+  - [ ]\* 7.6 Tulis property test untuk Property 4 (Retry Bounded)
     - **Property 4: Retry Bounded** — `∀ step run sr: sr.attempt <= sr.policy.max_attempts`
     - Generator: urutan failure acak; assert worker tidak pernah menjalankan attempt > `max_attempts`
     - **Validates: Requirements 1.3**
-  - [ ]* 7.7 Tulis unit tests untuk sandbox enforcement dan secret handling
+  - [ ]\* 7.7 Tulis unit tests untuk sandbox enforcement dan secret handling
     - Test pelanggaran CPU/memory/timeout/network/filesystem menghasilkan `FAILED` dalam ≤ 5 detik
     - Test secret tidak ter-leak di error log saat resolusi gagal
     - _Requirements: 7.1, 7.3, 7.4_
@@ -186,11 +186,11 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Reject payload > 1 MB dengan 413 sebelum handler domain
     - Pastikan seluruh akses DB pakai parameterized query (lint rule sudah di task 1.2)
     - _Requirements: 7.7, 7.8, 7.9_
-  - [ ]* 9.6 Tulis property test untuk Property 1 (Tenant Isolation)
+  - [ ]\* 9.6 Tulis property test untuk Property 1 (Tenant Isolation)
     - **Property 1: Tenant Isolation** — `∀ request r, ∀ row x yang dikembalikan ke r: x.tenant_id = jwt.tenant_id`
     - Generator: dataset dua tenant + request acak dengan JWT tenant A; assert tidak ada baris tenant B yang ter-leak via list, getById, run query, log query
     - **Validates: Requirements 2.1**
-  - [ ]* 9.7 Tulis unit tests untuk skenario auth failures
+  - [ ]\* 9.7 Tulis unit tests untuk skenario auth failures
     - Test 401 untuk token absent / malformed / expired / signature invalid; test 403 untuk role mismatch; test 429 saat melebihi kuota; test 413 saat payload > 1 MB
     - _Requirements: 2.3, 2.4, 2.5, 2.12, 7.7, 7.8, 7.9_
 
@@ -219,11 +219,11 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Tulis entry ke tabel `audit_logs` (append-only) untuk setiap mutasi (workflow create/update/rollback, run trigger, role change, secret access)
     - Field: `tenant_id`, `user_id`, `action`, `resource_id`, `timestamp`, `request_id`; retensi minimal 365 hari
     - _Requirements: 7.6_
-  - [ ]* 10.7 Tulis property test untuk Property 10 (Versioning Immutability)
+  - [ ]\* 10.7 Tulis property test untuk Property 10 (Versioning Immutability)
     - **Property 10: Workflow Versioning Immutability** — `∀ versi v yang ter-persist: v.definition immutable`; update selalu menciptakan versi baru
     - Generator: urutan operasi `update` + `rollback` acak; assert tidak ada record `workflow_versions` yang dimodifikasi setelah insert
     - **Validates: Requirements 2.1**
-  - [ ]* 10.8 Tulis integration tests untuk API CRUD + RBAC + webhook
+  - [ ]\* 10.8 Tulis integration tests untuk API CRUD + RBAC + webhook
     - Test endpoint dengan role berbeda (Admin/Editor/Viewer) → expected status code
     - Test webhook dengan signature valid + invalid + timestamp expired
     - _Requirements: 2.4, 2.6, 2.7, 2.8, 2.9, 2.10, 2.11_
@@ -235,7 +235,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
   - [ ] 11.2 Implementasikan `schedulerTick` dengan `SELECT ... FOR UPDATE SKIP LOCKED`
     - Ambil schedules due, trigger run, advance `next_run_at`; aman dijalankan multi-replica
     - _Requirements: 2.2_
-  - [ ]* 11.3 Tulis property test untuk Property 7 (At-Most-Once Schedule Trigger)
+  - [ ]\* 11.3 Tulis property test untuk Property 7 (At-Most-Once Schedule Trigger)
     - **Property 7: At-Most-Once Schedule Trigger** — `∀ schedule s, ∀ window w: jumlah Run yang dipicu s dengan started_at ∈ w adalah ≤ 1`
     - Generator: simulasi N replica scheduler concurrent + clock acak; assert no double-trigger
     - **Validates: Requirements 2.2**
@@ -258,11 +258,11 @@ Convert the feature design into a series of prompts for a code-generation LLM th
   - [ ] 12.5 Wire orchestrator/worker event emitter ke Realtime Hub
     - Emit `RUN_QUEUED`, `RUN_STARTED`, `STEP_STARTED`, `STEP_SUCCEEDED`, `STEP_FAILED`, `RUN_SUCCEEDED`, `RUN_FAILED`, `RUN_TIMED_OUT`, `RUN_CANCELLED` dengan target latency P95 ≤ 2s, P99 ≤ 5s
     - _Requirements: 3.1_
-  - [ ]* 12.6 Tulis property test untuk Property 8 (WebSocket Event Authorization)
+  - [ ]\* 12.6 Tulis property test untuk Property 8 (WebSocket Event Authorization)
     - **Property 8: WebSocket Event Authorization** — `∀ event e yang diterima koneksi c: e.tenant_id = c.tenant_id AND user di c punya akses Viewer+ ke e.run_id`
     - Generator: dataset multi-tenant + event acak; assert tidak ada cross-tenant leak via WS
     - **Validates: Requirements 3.1, 2.1**
-  - [ ]* 12.7 Tulis integration test untuk WebSocket subscription E2E
+  - [ ]\* 12.7 Tulis integration test untuk WebSocket subscription E2E
     - Subscribe dengan JWT tenant A → assert hanya menerima event tenant A
     - Test heartbeat timeout dan close code 4401 untuk JWT invalid
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
@@ -282,7 +282,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
   - [ ] 14.3 Implementasikan retention tier scheduler (hot/warm/cold)
     - Job harian: pindahkan entry usia 30–180 hari ke `warm`, > 180 hari ke `cold` (S3 Glacier interface)
     - _Requirements: 4.4_
-  - [ ]* 14.4 Tulis unit tests untuk log query dan retention
+  - [ ]\* 14.4 Tulis unit tests untuk log query dan retention
     - Test ordering monotonic, range guard 30 hari, pagination boundary
     - _Requirements: 3.7, 4.4_
 
@@ -307,7 +307,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Counter per tenant per hari, limit 100,000 token, reset 00:00 UTC
     - Return 429 saat habis tanpa meneruskan ke LLM
     - _Requirements: 6.7, 6.8_
-  - [ ]* 15.5 Tulis unit tests untuk AI guardrails
+  - [ ]\* 15.5 Tulis unit tests untuk AI guardrails
     - Test 403 untuk Viewer; 504 saat LLM timeout; 422 saat re-prompt tetap gagal; 413 untuk prompt > 4,000 token; 429 saat budget habis; 404 saat AI disabled; SCRIPT step LLM ditolak; DRAFT tidak dipersist
     - _Requirements: 6.1–6.13_
 
@@ -351,7 +351,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
   - [ ] 18.1 Wire seluruh komponen di entry point API + orchestrator + worker
     - Setup graceful shutdown, propagasi `request_id`, dependency injection container, bootstrap order migrasi → API listen
     - _Requirements: 5.2, 5.4, 5.5_
-  - [ ]* 18.2 Tulis E2E test workflow 3-step (HTTP → script → conditional)
+  - [ ]\* 18.2 Tulis E2E test workflow 3-step (HTTP → script → conditional)
     - Login tenant A, create workflow, trigger run, subscribe WebSocket, kumpulkan event, assert untuk setiap pasangan `(parent, child)` event `STEP_*` parent diterima sebelum child, assert `RUN_SUCCEEDED`, assert log entries dapat di-query, timeout test ≤ 60 detik
     - _Requirements: 8.4_
 
@@ -375,10 +375,54 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     { "id": 0, "tasks": ["1.1"] },
     { "id": 1, "tasks": ["1.2", "1.3", "2.1"] },
     { "id": 2, "tasks": ["2.2", "3.1", "4.1", "9.1", "9.2"] },
-    { "id": 3, "tasks": ["2.3", "2.4", "3.2", "3.3", "3.4", "4.2", "9.3", "9.4", "9.5", "12.1", "14.1"] },
-    { "id": 4, "tasks": ["2.5", "3.5", "3.6", "3.7", "6.1", "6.3", "9.6", "9.7", "12.2", "12.3", "14.2", "14.3", "15.1", "17.1"] },
-    { "id": 5, "tasks": ["6.2", "6.4", "6.5", "6.6", "6.8", "7.1", "10.1", "12.4", "14.4", "15.2"] },
-    { "id": 6, "tasks": ["6.7", "6.9", "6.10", "7.2", "7.3", "7.4", "7.5", "10.2", "10.4", "10.5", "10.6", "11.1", "12.5", "15.3", "15.4", "16.2"] },
+    {
+      "id": 3,
+      "tasks": ["2.3", "2.4", "3.2", "3.3", "3.4", "4.2", "9.3", "9.4", "9.5", "12.1", "14.1"]
+    },
+    {
+      "id": 4,
+      "tasks": [
+        "2.5",
+        "3.5",
+        "3.6",
+        "3.7",
+        "6.1",
+        "6.3",
+        "9.6",
+        "9.7",
+        "12.2",
+        "12.3",
+        "14.2",
+        "14.3",
+        "15.1",
+        "17.1"
+      ]
+    },
+    {
+      "id": 5,
+      "tasks": ["6.2", "6.4", "6.5", "6.6", "6.8", "7.1", "10.1", "12.4", "14.4", "15.2"]
+    },
+    {
+      "id": 6,
+      "tasks": [
+        "6.7",
+        "6.9",
+        "6.10",
+        "7.2",
+        "7.3",
+        "7.4",
+        "7.5",
+        "10.2",
+        "10.4",
+        "10.5",
+        "10.6",
+        "11.1",
+        "12.5",
+        "15.3",
+        "15.4",
+        "16.2"
+      ]
+    },
     { "id": 7, "tasks": ["7.6", "7.7", "10.3", "10.7", "12.6", "15.5", "17.2", "17.3", "17.4"] },
     { "id": 8, "tasks": ["10.8", "11.2", "12.7"] },
     { "id": 9, "tasks": ["11.3", "16.1"] },

@@ -32,9 +32,13 @@ export const up = (pgm) => {
   });
 
   pgm.createIndex('workflow_versions', ['workflow_id', 'version'], { unique: true });
-  pgm.createIndex('workflow_versions', [{ name: 'workflow_id' }, { name: 'version', sort: 'DESC' }], {
-    name: 'idx_workflow_versions_wf',
-  });
+  pgm.createIndex(
+    'workflow_versions',
+    [{ name: 'workflow_id' }, { name: 'version', sort: 'DESC' }],
+    {
+      name: 'idx_workflow_versions_wf',
+    },
+  );
   pgm.createIndex('workflows', [{ name: 'tenant_id' }, { name: 'updated_at', sort: 'DESC' }], {
     name: 'idx_workflows_tenant_updated',
   });
