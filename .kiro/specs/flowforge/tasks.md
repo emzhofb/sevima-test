@@ -24,6 +24,11 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Tambahkan service `migrate` (one-shot) untuk menjalankan migration script
     - Sediakan `.env.example` dengan seluruh secret/config yang dibutuhkan
     - _Requirements: 5.1, 5.7_
+  - [x] 1.4 Setup Vitest test runner
+    - `vitest.config.ts` di root
+    - Script `pnpm test` jalan walau belum ada test
+    - Coverage script `pnpm test:coverage` ada
+    - Sample test `packages/shared/src/sample.test.ts` jalan dan pass
 
 - [ ] 2. Data layer dan persistence
   - [ ] 2.1 Definisikan tipe TypeScript untuk seluruh domain entity di `packages/shared`
