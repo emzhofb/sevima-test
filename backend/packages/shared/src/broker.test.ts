@@ -9,17 +9,12 @@ describe('RedisStreamBroker', () => {
   beforeEach(async () => {
     // ioredis-mock might not support Streams completely, so we mock the stream methods manually.
     redis = new RedisMock();
-    
+
     redis.xadd = vi.fn().mockResolvedValue('12345-0');
     redis.xgroup = vi.fn().mockResolvedValue('OK');
-    redis.xreadgroup = vi.fn().mockResolvedValue([
-      [
-        'test-stream',
-        [
-          ['12345-0', ['run_id', 'r1']]
-        ]
-      ]
-    ]);
+    redis.xreadgroup = vi
+      .fn()
+      .mockResolvedValue([['test-stream', [['12345-0', ['run_id', 'r1']]]]]);
     redis.xack = vi.fn().mockResolvedValue(1);
 
     broker = new RedisStreamBroker(redis as any);
@@ -33,7 +28,13 @@ describe('RedisStreamBroker', () => {
 
   it('ensureGroup calls xgroup', async () => {
     await broker.ensureGroup('test-stream', 'test-group');
-    expect(redis.xgroup).toHaveBeenCalledWith('CREATE', 'test-stream', 'test-group', '$', 'MKSTREAM');
+    expect(redis.xgroup).toHaveBeenCalledWith(
+      'CREATE',
+      'test-stream',
+      'test-group',
+      '$',
+      'MKSTREAM',
+    );
   });
 
   it('dequeue calls xreadgroup and parses result', async () => {
@@ -42,10 +43,16 @@ describe('RedisStreamBroker', () => {
     expect(msg!.id).toBe('12345-0');
     expect(msg!.payload.run_id).toBe('r1');
     expect(redis.xreadgroup).toHaveBeenCalledWith(
-      'GROUP', 'test-group', 'c1',
-      'COUNT', 1,
-      'BLOCK', 1000,
-      'STREAMS', 'test-stream', '>'
+      'GROUP',
+      'test-group',
+      'c1',
+      'COUNT',
+      1,
+      'BLOCK',
+      1000,
+      'STREAMS',
+      'test-stream',
+      '>',
     );
   });
 

@@ -6,6 +6,7 @@
     "@flowforge/auth": "workspace:*",
     "@flowforge/parser": "workspace:*",
     "@flowforge/shared": "workspace:*",
+    "cron-parser": "^4.9.0",
     "fastify": "^5.8.5",
     "ioredis": "^5.10.1",
     "zod": "^3.23.8"

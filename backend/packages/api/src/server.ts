@@ -5,7 +5,7 @@ import Redis from 'ioredis';
 async function start() {
   const config = loadConfig();
   const db = createDbClient(config);
-  
+
   // Use config.REDIS_URL or fallback to localhost
   const redis = new Redis(config.REDIS_URL || 'redis://localhost:6379');
 

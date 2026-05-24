@@ -1,4 +1,12 @@
-import { loadConfig, createDbClient, createLogger, RedisStreamBroker } from '@flowforge/shared';
+import {
+  loadConfig,
+  createDbClient,
+  createLogger,
+  RedisStreamBroker,
+  computeBackoff,
+  appendLogs,
+} from '@flowforge/shared';
+import type { DbClient } from '@flowforge/shared';
 import Redis from 'ioredis';
 import { randomUUID } from 'crypto';
 import { executeHttp } from './handlers/http.js';
@@ -10,11 +18,16 @@ export type StepOutcome = { ok: true; output?: unknown } | { ok: false; error: s
 
 async function executeStep(spec: any, runId: string, db: any): Promise<StepOutcome> {
   switch (spec.type) {
-    case 'HTTP':        return executeHttp(spec, runId, db);
-    case 'DELAY':       return executeDelay(spec);
-    case 'CONDITIONAL': return executeConditional(spec, runId, db);
-    case 'SCRIPT':      return executeScript(spec, runId, db);
-    default:            return { ok: false, error: `Unknown step type: ${spec.type}` };
+    case 'HTTP':
+      return executeHttp(spec, runId, db);
+    case 'DELAY':
+      return executeDelay(spec);
+    case 'CONDITIONAL':
+      return executeConditional(spec, runId, db);
+    case 'SCRIPT':
+      return executeScript(spec, runId, db);
+    default:
+      return { ok: false, error: `Unknown step type: ${spec.type}` };
   }
 }
 
@@ -33,8 +46,12 @@ export async function startWorker(): Promise<void> {
   await broker.ensureGroup(STEP_STREAM, GROUP);
 
   let running = true;
-  process.on('SIGINT', () => { running = false; });
-  process.on('SIGTERM', () => { running = false; });
+  process.on('SIGINT', () => {
+    running = false;
+  });
+  process.on('SIGTERM', () => {
+    running = false;
+  });
 
   log.info({ consumer: CONSUMER }, 'Worker started');
 
@@ -43,8 +60,9 @@ export async function startWorker(): Promise<void> {
     if (!msg) continue;
 
     const { run_id, step_id, attempt } = msg.payload;
-    const tenantId = msg.payload.tenant_id;
-    log.info({ run_id, step_id, attempt }, 'Processing step');
+    const tenantId = msg.payload.tenant_id!;
+    const currentAttempt = Number(attempt ?? '1');
+    log.info({ run_id, step_id, attempt: currentAttempt }, 'Processing step');
 
     try {
       // Check if run is cancelled before processing
@@ -62,6 +80,20 @@ export async function startWorker(): Promise<void> {
         [run_id, step_id],
       );
 
+      // Write start log
+      await appendLogs(db, [
+        {
+          tenant_id: tenantId,
+          run_id: run_id!,
+          step_id: step_id!,
+          ts: new Date(),
+          level: 'INFO',
+          message: `Step ${step_id} started (attempt ${currentAttempt})`,
+        },
+      ]).catch(() => {
+        /* non-fatal */
+      });
+
       // Load step spec from workflow definition
       const versionRes = await db.query(
         `SELECT v.definition FROM workflow_versions v
@@ -78,28 +110,81 @@ export async function startWorker(): Promise<void> {
       }
 
       // Execute the step
-      const outcome = await executeStep(stepSpec, run_id, db);
-      const eventId = randomUUID();
+      const outcome = await executeStep(stepSpec, run_id!, db);
 
-      if (outcome.ok) {
-        await broker.enqueue(EVENT_STREAM, {
-          event_id: eventId,
-          type: 'STEP_SUCCEEDED',
-          run_id,
-          step_id,
-          attempt,
+      // Write completion log
+      await appendLogs(db, [
+        {
           tenant_id: tenantId,
-          output: JSON.stringify(outcome.output ?? null),
-        });
-      } else {
+          run_id: run_id!,
+          step_id: step_id!,
+          ts: new Date(),
+          level: outcome.ok ? 'INFO' : 'ERROR',
+          message: outcome.ok
+            ? `Step ${step_id} succeeded`
+            : `Step ${step_id} failed: ${outcome.error}`,
+          fields: outcome.ok
+            ? { output: outcome.output }
+            : { error: outcome.error, attempt: currentAttempt },
+        },
+      ]).catch(() => {
+        /* non-fatal */
+      });
+
+      if (!outcome.ok) {
+        // Check retry policy
+        const retry = stepSpec.retry;
+        if (retry && currentAttempt < retry.max_attempts) {
+          const delay = computeBackoff(currentAttempt + 1, retry);
+          log.info(
+            { run_id, step_id, attempt: currentAttempt, delay },
+            'Retrying step with backoff',
+          );
+
+          // Update step_run to READY for next attempt
+          await db.query(
+            `UPDATE step_runs SET attempt = $1, status = 'READY' WHERE run_id = $2 AND step_id = $3`,
+            [currentAttempt + 1, run_id, step_id],
+          );
+
+          // Re-enqueue with delay
+          setTimeout(() => {
+            broker
+              .enqueue(STEP_STREAM, {
+                run_id: run_id!,
+                step_id: step_id!,
+                tenant_id: tenantId,
+                attempt: String(currentAttempt + 1),
+              })
+              .catch((err) => log.error({ err }, 'Re-enqueue failed'));
+          }, delay);
+
+          await broker.ack(STEP_STREAM, GROUP, msg.id);
+          continue;
+        }
+
+        // Out of retries: emit STEP_FAILED
+        const eventId = randomUUID();
         await broker.enqueue(EVENT_STREAM, {
           event_id: eventId,
           type: 'STEP_FAILED',
-          run_id,
-          step_id,
-          attempt,
+          run_id: run_id!,
+          step_id: step_id!,
+          attempt: String(currentAttempt),
           tenant_id: tenantId,
           error: outcome.error,
+        });
+      } else {
+        // Emit STEP_SUCCEEDED
+        const eventId = randomUUID();
+        await broker.enqueue(EVENT_STREAM, {
+          event_id: eventId,
+          type: 'STEP_SUCCEEDED',
+          run_id: run_id!,
+          step_id: step_id!,
+          attempt: String(currentAttempt),
+          tenant_id: tenantId,
+          output: JSON.stringify(outcome.output ?? null),
         });
       }
 

@@ -13,10 +13,23 @@ describe('Rate Limiting', () => {
     const clientQuery = vi.fn(async (sql: string, params?: unknown[]) => {
       // Basic mock just to satisfy auth and routes
       if (sql.includes('INSERT INTO tenants')) {
-        return { rows: [{ id: tenantAId, slug: params?.[0], name: params?.[1], created_at: new Date() }] };
+        return {
+          rows: [{ id: tenantAId, slug: params?.[0], name: params?.[1], created_at: new Date() }],
+        };
       }
       if (sql.includes('INSERT INTO users')) {
-        return { rows: [{ id: 'user-xyz', tenant_id: params?.[0], email: params?.[1], password_hash: params?.[2], role: params?.[3], created_at: new Date() }] };
+        return {
+          rows: [
+            {
+              id: 'user-xyz',
+              tenant_id: params?.[0],
+              email: params?.[1],
+              password_hash: params?.[2],
+              role: params?.[3],
+              created_at: new Date(),
+            },
+          ],
+        };
       }
       if (sql.includes('SELECT * FROM workflows')) {
         // Just return empty items for GET /workflows
@@ -60,7 +73,7 @@ describe('Rate Limiting', () => {
       url: '/workflows',
       headers: { authorization: `Bearer ${token}` },
     });
-    
+
     expect(res.statusCode).toBe(429);
     expect(res.headers['retry-after']).toBeDefined();
   });

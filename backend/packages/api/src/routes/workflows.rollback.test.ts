@@ -68,10 +68,23 @@ describe('POST /workflows/:id/rollback route', () => {
 
     const clientQuery = vi.fn(async (sql: string, params?: unknown[]) => {
       if (sql.includes('INSERT INTO tenants')) {
-        return { rows: [{ id: tenantAId, slug: params?.[0], name: params?.[1], created_at: new Date() }] };
+        return {
+          rows: [{ id: tenantAId, slug: params?.[0], name: params?.[1], created_at: new Date() }],
+        };
       }
       if (sql.includes('INSERT INTO users')) {
-        return { rows: [{ id: 'user-xyz', tenant_id: params?.[0], email: params?.[1], password_hash: params?.[2], role: params?.[3], created_at: new Date() }] };
+        return {
+          rows: [
+            {
+              id: 'user-xyz',
+              tenant_id: params?.[0],
+              email: params?.[1],
+              password_hash: params?.[2],
+              role: params?.[3],
+              created_at: new Date(),
+            },
+          ],
+        };
       }
 
       // Check if workflow exists (and optionally lock it)
@@ -91,7 +104,10 @@ describe('POST /workflows/:id/rollback route', () => {
       }
 
       // Update workflow current_version
-      if (sql.includes('UPDATE workflows') && sql.includes('current_version = current_version + 1')) {
+      if (
+        sql.includes('UPDATE workflows') &&
+        sql.includes('current_version = current_version + 1')
+      ) {
         // rollback passes only [workflowId]
         const id = params?.[0] as string;
         const wf = workflowState.find((w) => w.id === id);

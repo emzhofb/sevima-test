@@ -31,18 +31,31 @@ describe('DELETE /workflows/:id route', () => {
     const clientQuery = vi.fn(async (sql: string, params?: unknown[]) => {
       // INSERT tenant
       if (sql.includes('INSERT INTO tenants')) {
-        return { rows: [{ id: tenantAId, slug: params?.[0], name: params?.[1], created_at: new Date() }] };
+        return {
+          rows: [{ id: tenantAId, slug: params?.[0], name: params?.[1], created_at: new Date() }],
+        };
       }
       // INSERT user
       if (sql.includes('INSERT INTO users')) {
-        return { rows: [{ id: 'user-xyz', tenant_id: params?.[0], email: params?.[1], password_hash: params?.[2], role: params?.[3], created_at: new Date() }] };
+        return {
+          rows: [
+            {
+              id: 'user-xyz',
+              tenant_id: params?.[0],
+              email: params?.[1],
+              password_hash: params?.[2],
+              role: params?.[3],
+              created_at: new Date(),
+            },
+          ],
+        };
       }
 
       // DELETE workflow
       if (sql.includes('DELETE FROM workflows WHERE tenant_id = $1 AND id = $2')) {
         const tenantId = params?.[0] as string;
         const id = params?.[1] as string;
-        
+
         const idx = workflowState.findIndex((w) => w.tenant_id === tenantId && w.id === id);
         if (idx !== -1) {
           workflowState.splice(idx, 1);

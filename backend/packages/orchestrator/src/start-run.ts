@@ -2,17 +2,10 @@ import { computeReadySet } from '@flowforge/parser';
 import { withTransaction } from '@flowforge/shared';
 import type { Db, Broker } from '@flowforge/shared';
 
-export async function startRun(
-  db: Db,
-  broker: Broker,
-  runId: string,
-): Promise<void> {
+export async function startRun(db: Db, broker: Broker, runId: string): Promise<void> {
   await withTransaction(db, async (client) => {
     // Lock + load run
-    const runRes = await client.query(
-      'SELECT * FROM runs WHERE id = $1 FOR UPDATE',
-      [runId],
-    );
+    const runRes = await client.query('SELECT * FROM runs WHERE id = $1 FOR UPDATE', [runId]);
     const run = runRes.rows[0];
     if (!run) throw new Error(`Run ${runId} not found`);
 
@@ -29,10 +22,9 @@ export async function startRun(
     const definition = versionRes.rows[0].definition;
 
     // Transition to RUNNING
-    await client.query(
-      `UPDATE runs SET status = 'RUNNING', started_at = now() WHERE id = $1`,
-      [runId],
-    );
+    await client.query(`UPDATE runs SET status = 'RUNNING', started_at = now() WHERE id = $1`, [
+      runId,
+    ]);
 
     // Compute initial ready set (steps with no dependencies)
     const ready = computeReadySet(definition, new Set());

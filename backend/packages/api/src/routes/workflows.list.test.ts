@@ -32,12 +32,28 @@ describe('GET /workflows (list) route', () => {
       // Tenant / User inserts (used by auth helpers)
       if (sql.includes('INSERT INTO tenants')) {
         return {
-          rows: [{ id: params?.[0] === 'tenant-b' ? tenantBId : tenantAId, slug: params?.[0], name: params?.[1], created_at: new Date() }],
+          rows: [
+            {
+              id: params?.[0] === 'tenant-b' ? tenantBId : tenantAId,
+              slug: params?.[0],
+              name: params?.[1],
+              created_at: new Date(),
+            },
+          ],
         };
       }
       if (sql.includes('INSERT INTO users')) {
         return {
-          rows: [{ id: 'user-xyz', tenant_id: params?.[0], email: params?.[1], password_hash: params?.[2], role: params?.[3], created_at: new Date() }],
+          rows: [
+            {
+              id: 'user-xyz',
+              tenant_id: params?.[0],
+              email: params?.[1],
+              password_hash: params?.[2],
+              role: params?.[3],
+              created_at: new Date(),
+            },
+          ],
         };
       }
 
@@ -56,7 +72,16 @@ describe('GET /workflows (list) route', () => {
       }
       if (sql.includes('INSERT INTO workflow_versions')) {
         return {
-          rows: [{ id: 'ver-1', workflow_id: params?.[0], version: params?.[1], definition: params?.[2], created_by: params?.[3], created_at: new Date() }],
+          rows: [
+            {
+              id: 'ver-1',
+              workflow_id: params?.[0],
+              version: params?.[1],
+              definition: params?.[2],
+              created_by: params?.[3],
+              created_at: new Date(),
+            },
+          ],
         };
       }
       if (sql.includes('INSERT INTO audit_logs')) {

@@ -107,22 +107,31 @@ describe('orchestrator E2E', () => {
 
     // Step 2: simulate worker completing 'a'
     await handleStepEvent(mockDb as any, mockBroker as any, {
-      event_id: 'evt-a', type: 'STEP_SUCCEEDED',
-      run_id: 'run-1', step_id: 'a', attempt: 1,
+      event_id: 'evt-a',
+      type: 'STEP_SUCCEEDED',
+      run_id: 'run-1',
+      step_id: 'a',
+      attempt: 1,
     });
     expect(enqueuedSteps).toContain('b');
 
     // Step 3: simulate worker completing 'b'
     await handleStepEvent(mockDb as any, mockBroker as any, {
-      event_id: 'evt-b', type: 'STEP_SUCCEEDED',
-      run_id: 'run-1', step_id: 'b', attempt: 1,
+      event_id: 'evt-b',
+      type: 'STEP_SUCCEEDED',
+      run_id: 'run-1',
+      step_id: 'b',
+      attempt: 1,
     });
     expect(enqueuedSteps).toContain('c');
 
     // Step 4: simulate worker completing 'c'
     await handleStepEvent(mockDb as any, mockBroker as any, {
-      event_id: 'evt-c', type: 'STEP_SUCCEEDED',
-      run_id: 'run-1', step_id: 'c', attempt: 1,
+      event_id: 'evt-c',
+      type: 'STEP_SUCCEEDED',
+      run_id: 'run-1',
+      step_id: 'c',
+      attempt: 1,
     });
 
     // Verify run is SUCCEEDED
@@ -195,14 +204,19 @@ describe('orchestrator E2E', () => {
     expect(runStatus).toBe('RUNNING');
 
     await handleStepEvent(mockDb as any, mockBroker as any, {
-      event_id: 'evt-a-fail', type: 'STEP_FAILED',
-      run_id: 'run-1', step_id: 'a', error: 'HTTP 500', attempt: 1,
+      event_id: 'evt-a-fail',
+      type: 'STEP_FAILED',
+      run_id: 'run-1',
+      step_id: 'a',
+      error: 'HTTP 500',
+      attempt: 1,
     });
 
     expect(runStatus).toBe('FAILED');
     // 'b' should NOT have been enqueued
-    const enqueuedAfterFail = (mockBroker.enqueue as any).mock.calls
-      .filter((c: any[]) => c[1]?.step_id === 'b');
+    const enqueuedAfterFail = (mockBroker.enqueue as any).mock.calls.filter(
+      (c: any[]) => c[1]?.step_id === 'b',
+    );
     expect(enqueuedAfterFail.length).toBe(0);
   });
 });
