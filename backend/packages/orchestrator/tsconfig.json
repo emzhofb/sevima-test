@@ -2,7 +2,11 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "paths": {
+      "@flowforge/shared": ["../shared/src/index.ts"],
+      "@flowforge/parser": ["../parser/src/index.ts"]
+    }
   },
   "include": ["src/**/*"]
 }
