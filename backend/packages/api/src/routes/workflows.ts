@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { requireRole } from '@flowforge/auth';
 import { parse } from '@flowforge/parser';
-import { createWorkflow, getWorkflowById, listWorkflows } from '../repos/workflow.repo.js';
+import { createWorkflow, getWorkflowById, listWorkflows, updateWorkflow } from '../repos/workflow.repo.js';
 import { writeAuditLog } from '../repos/audit.repo.js';
 
 const CreateWorkflowSchema = z.object({
@@ -92,4 +92,50 @@ export const workflowRoutes: FastifyPluginAsync = async (fastify) => {
 
     return wf;
   });
+  fastify.patch<{ Params: { id: string } }>(
+    '/workflows/:id',
+    { preHandler: requireRole('EDITOR') },
+    async (request, reply) => {
+      const ctx = request.ctx;
+      if (!ctx) {
+        return reply.code(401).send({ error: 'unauthorized', message: 'Missing request context' });
+      }
+
+      const PatchSchema = z.object({
+        definition: z.unknown().refine((v) => v !== undefined, { message: 'definition is required' }),
+      });
+      const parsed = PatchSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: 'invalid_input', issues: parsed.error.flatten() });
+      }
+
+      const defResult = parse(JSON.stringify(parsed.data.definition));
+      if (!defResult.ok) {
+        return reply.code(400).send({ error: 'invalid_definition', errors: defResult.errors });
+      }
+
+      const wf = await updateWorkflow(
+        fastify.db,
+        ctx.tenant_id,
+        request.params.id,
+        defResult.definition,
+        ctx.user_id,
+      );
+      if (!wf) {
+        return reply.code(404).send({ error: 'not_found' });
+      }
+
+      await writeAuditLog(fastify.db, {
+        tenant_id: ctx.tenant_id,
+        user_id: ctx.user_id,
+        action: 'workflow.update',
+        resource_type: 'workflow',
+        resource_id: wf.id,
+        request_id: ctx.request_id,
+        metadata: { new_version: wf.current_version },
+      });
+
+      return wf;
+    },
+  );
 };
