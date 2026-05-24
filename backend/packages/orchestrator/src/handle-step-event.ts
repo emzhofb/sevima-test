@@ -14,11 +14,7 @@ export type StepEvent = {
 
 const TERMINAL_STATUSES = new Set(['SUCCEEDED', 'FAILED', 'CANCELLED', 'TIMED_OUT']);
 
-export async function handleStepEvent(
-  db: Db,
-  broker: Broker,
-  event: StepEvent,
-): Promise<void> {
+export async function handleStepEvent(db: Db, broker: Broker, event: StepEvent): Promise<void> {
   await withTransaction(db, async (client: DbClient) => {
     // Dedup: insert event_id into processed_events, skip if already exists
     const dedup = await client.query(
@@ -32,10 +28,9 @@ export async function handleStepEvent(
     }
 
     // Lock run
-    const runRes = await client.query(
-      'SELECT * FROM runs WHERE id = $1 FOR UPDATE',
-      [event.run_id],
-    );
+    const runRes = await client.query('SELECT * FROM runs WHERE id = $1 FOR UPDATE', [
+      event.run_id,
+    ]);
     const run = runRes.rows[0];
     if (!run || TERMINAL_STATUSES.has(run.status)) {
       // Run already terminal or not found, ignore event
@@ -43,10 +38,9 @@ export async function handleStepEvent(
     }
 
     // Load workflow definition
-    const verRes = await client.query(
-      'SELECT definition FROM workflow_versions WHERE id = $1',
-      [run.version_id],
-    );
+    const verRes = await client.query('SELECT definition FROM workflow_versions WHERE id = $1', [
+      run.version_id,
+    ]);
     const definition = verRes.rows[0].definition;
     const stepSpec = definition.steps.find((s: any) => s.id === event.step_id);
 
@@ -68,10 +62,9 @@ export async function handleStepEvent(
 
     // Check if run should fail (step failed and not continue_on_failure)
     if (event.type === 'STEP_FAILED' && !stepSpec?.continue_on_failure) {
-      await client.query(
-        `UPDATE runs SET status = 'FAILED', finished_at = now() WHERE id = $1`,
-        [event.run_id],
-      );
+      await client.query(`UPDATE runs SET status = 'FAILED', finished_at = now() WHERE id = $1`, [
+        event.run_id,
+      ]);
       return;
     }
 

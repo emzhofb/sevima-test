@@ -1,7 +1,12 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { requireRole } from '@flowforge/auth';
-import { getRunById, listRuns, transitionRunStatus, IllegalStateTransitionError } from '../repos/run.repo.js';
+import {
+  getRunById,
+  listRuns,
+  transitionRunStatus,
+  IllegalStateTransitionError,
+} from '../repos/run.repo.js';
 import { listStepRuns } from '../repos/step-run.repo.js';
 import { writeAuditLog } from '../repos/audit.repo.js';
 import { withTransaction } from '@flowforge/shared';
@@ -9,36 +14,34 @@ import { withTransaction } from '@flowforge/shared';
 const ListRunsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(200).default(50),
-  status: z.enum(['PENDING', 'RUNNING', 'SUCCEEDED', 'FAILED', 'CANCELLED', 'TIMED_OUT']).optional(),
+  status: z
+    .enum(['PENDING', 'RUNNING', 'SUCCEEDED', 'FAILED', 'CANCELLED', 'TIMED_OUT'])
+    .optional(),
   fromDate: z.coerce.date().optional(),
   toDate: z.coerce.date().optional(),
   workflow_id: z.string().uuid().optional(),
 });
 
 export const runRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.get(
-    '/runs',
-    { preHandler: requireRole('VIEWER') },
-    async (request, reply) => {
-      const ctx = request.ctx!;
-      const parsed = ListRunsQuerySchema.safeParse(request.query);
-      if (!parsed.success) return reply.code(400).send({ error: 'invalid_query' });
+  fastify.get('/runs', { preHandler: requireRole('VIEWER') }, async (request, reply) => {
+    const ctx = request.ctx!;
+    const parsed = ListRunsQuerySchema.safeParse(request.query);
+    if (!parsed.success) return reply.code(400).send({ error: 'invalid_query' });
 
-      const { fromDate, toDate } = parsed.data;
-      if (fromDate && toDate) {
-        const days = (toDate.getTime() - fromDate.getTime()) / 86400000;
-        if (days > 30) {
-          return reply.code(400).send({ error: 'date_range_too_large', max_days: 30 });
-        }
+    const { fromDate, toDate } = parsed.data;
+    if (fromDate && toDate) {
+      const days = (toDate.getTime() - fromDate.getTime()) / 86400000;
+      if (days > 30) {
+        return reply.code(400).send({ error: 'date_range_too_large', max_days: 30 });
       }
-      // Strip undefined values to satisfy exactOptionalPropertyTypes
-      const queryOpts = Object.fromEntries(
-        Object.entries(parsed.data).filter(([, v]) => v !== undefined)
-      );
+    }
+    // Strip undefined values to satisfy exactOptionalPropertyTypes
+    const queryOpts = Object.fromEntries(
+      Object.entries(parsed.data).filter(([, v]) => v !== undefined),
+    );
 
-      return listRuns(fastify.db, ctx.tenant_id, queryOpts);
-    },
-  );
+    return listRuns(fastify.db, ctx.tenant_id, queryOpts);
+  });
 
   fastify.get<{ Params: { id: string } }>(
     '/runs/:id',
@@ -101,6 +104,50 @@ export const runRoutes: FastifyPluginAsync = async (fastify) => {
 
       const steps = await listStepRuns(fastify.db, ctx.tenant_id, id);
       return { items: steps };
+    },
+  );
+
+  const LogsQuerySchema = z.object({
+    step_id: z.string().optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    pageSize: z.coerce.number().int().min(1).max(200).default(50),
+  });
+
+  fastify.get<{ Params: { id: string } }>(
+    '/runs/:id/logs',
+    { preHandler: requireRole('VIEWER') },
+    async (request, reply) => {
+      const ctx = request.ctx!;
+      const { id } = request.params;
+
+      const run = await getRunById(fastify.db, ctx.tenant_id, id);
+      if (!run) return reply.code(404).send({ error: 'not_found' });
+
+      const parsed = LogsQuerySchema.safeParse(request.query);
+      if (!parsed.success) return reply.code(400).send({ error: 'invalid_query' });
+
+      const conditions: string[] = ['tenant_id = $1', 'run_id = $2'];
+      const params: unknown[] = [ctx.tenant_id, id];
+
+      if (parsed.data.step_id) {
+        params.push(parsed.data.step_id);
+        conditions.push(`step_id = $${params.length}`);
+      }
+
+      params.push(parsed.data.pageSize);
+      const limitIdx = params.length;
+      params.push((parsed.data.page - 1) * parsed.data.pageSize);
+      const offsetIdx = params.length;
+
+      const rows = await fastify.db.query(
+        `SELECT * FROM logs
+         WHERE ${conditions.join(' AND ')}
+         ORDER BY ts ASC
+         LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
+        params,
+      );
+
+      return { items: rows.rows };
     },
   );
 };

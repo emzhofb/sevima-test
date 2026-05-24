@@ -86,10 +86,10 @@ export async function getRunById(
   tenantId: string,
   id: string,
 ): Promise<Run | null> {
-  const result = await db.query<Run>(
-    'SELECT * FROM runs WHERE tenant_id = $1 AND id = $2',
-    [tenantId, id],
-  );
+  const result = await db.query<Run>('SELECT * FROM runs WHERE tenant_id = $1 AND id = $2', [
+    tenantId,
+    id,
+  ]);
   return result.rows[0] || null;
 }
 

@@ -148,7 +148,11 @@ describe('executeHttp', () => {
   });
 
   it('returns timeout error when request is aborted', async () => {
-    global.fetch = vi.fn().mockRejectedValue(Object.assign(new Error('The operation was aborted'), { name: 'AbortError' })) as any;
+    global.fetch = vi
+      .fn()
+      .mockRejectedValue(
+        Object.assign(new Error('The operation was aborted'), { name: 'AbortError' }),
+      ) as any;
 
     const result = await executeHttp(
       { config: { url: 'https://api.example.com/slow', method: 'GET' }, timeout_sec: 1 },

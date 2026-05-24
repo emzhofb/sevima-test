@@ -74,11 +74,7 @@ export async function updateStepRun(
   return stepRun;
 }
 
-export async function listStepRuns(
-  db: Db,
-  tenantId: string,
-  runId: string,
-): Promise<StepRun[]> {
+export async function listStepRuns(db: Db, tenantId: string, runId: string): Promise<StepRun[]> {
   const result = await db.query<StepRun>(
     `SELECT * FROM step_runs
      WHERE tenant_id = $1 AND run_id = $2

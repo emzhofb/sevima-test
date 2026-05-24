@@ -2,7 +2,7 @@ import { loadConfig, createDbClient, createLogger, RedisStreamBroker } from '@fl
 import type { Db, Broker } from '@flowforge/shared';
 import Redis from 'ioredis';
 import { startRun } from './start-run.js';
-import { handleStepEvent } from './handle-step-event.js';
+import { handleStepEvent, type StepEvent } from './handle-step-event.js';
 import { startTimeoutScanner } from './timeout-scanner.js';
 
 const RUN_STREAM = 'flowforge:runs';
@@ -13,7 +13,12 @@ const EVENT_GROUP = 'orchestrator-events';
 
 let running = true;
 
-async function consumeRuns(db: Db, broker: Broker, consumer: string, log: ReturnType<typeof createLogger>): Promise<void> {
+async function consumeRuns(
+  db: Db,
+  broker: Broker,
+  consumer: string,
+  log: ReturnType<typeof createLogger>,
+): Promise<void> {
   await broker.ensureGroup(RUN_STREAM, RUN_GROUP);
   await broker.ensureGroup(STEP_STREAM, 'workers');
 
@@ -24,6 +29,12 @@ async function consumeRuns(db: Db, broker: Broker, consumer: string, log: Return
 
       const { run_id, tenant_id } = msg.payload;
       log.info({ run_id, tenant_id }, 'Processing run');
+
+      if (!run_id) {
+        log.error({ msg }, 'Missing run_id in payload');
+        await broker.ack(RUN_STREAM, RUN_GROUP, msg.id);
+        continue;
+      }
 
       try {
         await startRun(db, broker, run_id);
@@ -39,7 +50,12 @@ async function consumeRuns(db: Db, broker: Broker, consumer: string, log: Return
   }
 }
 
-async function consumeStepEvents(db: Db, broker: Broker, consumer: string, log: ReturnType<typeof createLogger>): Promise<void> {
+async function consumeStepEvents(
+  db: Db,
+  broker: Broker,
+  consumer: string,
+  log: ReturnType<typeof createLogger>,
+): Promise<void> {
   await broker.ensureGroup(STEP_EVENT_STREAM, EVENT_GROUP);
 
   while (running) {
@@ -48,15 +64,19 @@ async function consumeStepEvents(db: Db, broker: Broker, consumer: string, log: 
       if (!msg) continue;
 
       try {
-        const event = {
+        const event: StepEvent = {
           event_id: msg.payload.event_id!,
           type: msg.payload.type as 'STEP_SUCCEEDED' | 'STEP_FAILED',
           run_id: msg.payload.run_id!,
           step_id: msg.payload.step_id!,
-          output: msg.payload.output ? JSON.parse(msg.payload.output) : undefined,
-          error: msg.payload.error,
           attempt: Number(msg.payload.attempt),
         };
+        if (msg.payload.output) {
+          event.output = JSON.parse(msg.payload.output);
+        }
+        if (msg.payload.error) {
+          event.error = msg.payload.error;
+        }
 
         await handleStepEvent(db, broker, event);
         await broker.ack(STEP_EVENT_STREAM, EVENT_GROUP, msg.id);
@@ -79,8 +99,12 @@ export async function startOrchestrator(): Promise<void> {
 
   const CONSUMER = `orch-${process.pid}`;
 
-  process.on('SIGINT', () => { running = false; });
-  process.on('SIGTERM', () => { running = false; });
+  process.on('SIGINT', () => {
+    running = false;
+  });
+  process.on('SIGTERM', () => {
+    running = false;
+  });
 
   log.info('Orchestrator started');
 

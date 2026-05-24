@@ -5,25 +5,29 @@ function makeDb(runStatus: string = 'PENDING', extraQueries?: Record<string, any
   const clientQuery = vi.fn(async (sql: string, params?: unknown[]) => {
     if (sql.includes('FOR UPDATE')) {
       return {
-        rows: [{
-          id: params?.[0],
-          tenant_id: 'tenant-1',
-          version_id: 'version-1',
-          status: runStatus,
-        }],
+        rows: [
+          {
+            id: params?.[0],
+            tenant_id: 'tenant-1',
+            version_id: 'version-1',
+            status: runStatus,
+          },
+        ],
       };
     }
     if (sql.includes('SELECT definition')) {
       return {
-        rows: [{
-          definition: {
-            steps: [
-              { id: 'a', type: 'DELAY', depends_on: [], config: { duration_ms: 100 } },
-              { id: 'b', type: 'DELAY', depends_on: [], config: { duration_ms: 100 } },
-              { id: 'c', type: 'DELAY', depends_on: ['a', 'b'], config: { duration_ms: 100 } },
-            ],
+        rows: [
+          {
+            definition: {
+              steps: [
+                { id: 'a', type: 'DELAY', depends_on: [], config: { duration_ms: 100 } },
+                { id: 'b', type: 'DELAY', depends_on: [], config: { duration_ms: 100 } },
+                { id: 'c', type: 'DELAY', depends_on: ['a', 'b'], config: { duration_ms: 100 } },
+              ],
+            },
           },
-        }],
+        ],
       };
     }
     return { rows: [] };
@@ -93,6 +97,8 @@ describe('startRun', () => {
       ensureGroup: vi.fn(),
     };
 
-    await expect(startRun(mockDb as any, mockBroker as any, 'nonexistent')).rejects.toThrow('not found');
+    await expect(startRun(mockDb as any, mockBroker as any, 'nonexistent')).rejects.toThrow(
+      'not found',
+    );
   });
 });

@@ -2,7 +2,14 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { requireRole } from '@flowforge/auth';
 import { parse } from '@flowforge/parser';
-import { createWorkflow, getWorkflowById, listWorkflows, updateWorkflow, rollbackWorkflow, deleteWorkflow } from '../repos/workflow.repo.js';
+import {
+  createWorkflow,
+  getWorkflowById,
+  listWorkflows,
+  updateWorkflow,
+  rollbackWorkflow,
+  deleteWorkflow,
+} from '../repos/workflow.repo.js';
 import { createRun } from '../repos/run.repo.js';
 import { writeAuditLog } from '../repos/audit.repo.js';
 
@@ -77,26 +84,30 @@ export const workflowRoutes: FastifyPluginAsync = async (fastify) => {
     return { items, total, page, pageSize };
   });
 
-  fastify.get<{ Params: { id: string }, Querystring: { version?: string } }>('/workflows/:id', { preHandler: requireRole('VIEWER') }, async (request, reply) => {
-    const ctx = request.ctx;
-    if (!ctx) {
-      return reply.code(401).send({ error: 'unauthorized', message: 'Missing request context' });
-    }
+  fastify.get<{ Params: { id: string }; Querystring: { version?: string } }>(
+    '/workflows/:id',
+    { preHandler: requireRole('VIEWER') },
+    async (request, reply) => {
+      const ctx = request.ctx;
+      if (!ctx) {
+        return reply.code(401).send({ error: 'unauthorized', message: 'Missing request context' });
+      }
 
-    const versionRaw = request.query.version;
-    const version = versionRaw ? Number(versionRaw) : undefined;
+      const versionRaw = request.query.version;
+      const version = versionRaw ? Number(versionRaw) : undefined;
 
-    if (versionRaw && (Number.isNaN(version) || version! < 1)) {
-      return reply.code(400).send({ error: 'invalid_version' });
-    }
+      if (versionRaw && (Number.isNaN(version) || version! < 1)) {
+        return reply.code(400).send({ error: 'invalid_version' });
+      }
 
-    const wf = await getWorkflowById(fastify.db, ctx.tenant_id, request.params.id, version);
-    if (!wf) {
-      return reply.code(404).send({ error: 'not_found' });
-    }
+      const wf = await getWorkflowById(fastify.db, ctx.tenant_id, request.params.id, version);
+      if (!wf) {
+        return reply.code(404).send({ error: 'not_found' });
+      }
 
-    return wf;
-  });
+      return wf;
+    },
+  );
   fastify.patch<{ Params: { id: string } }>(
     '/workflows/:id',
     { preHandler: requireRole('EDITOR') },
@@ -107,7 +118,9 @@ export const workflowRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const PatchSchema = z.object({
-        definition: z.unknown().refine((v) => v !== undefined, { message: 'definition is required' }),
+        definition: z
+          .unknown()
+          .refine((v) => v !== undefined, { message: 'definition is required' }),
       });
       const parsed = PatchSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -180,7 +193,8 @@ export const workflowRoutes: FastifyPluginAsync = async (fastify) => {
         return wf;
       } catch (err) {
         const msg = (err as Error).message;
-        if (msg.includes('Version')) return reply.code(400).send({ error: 'invalid_target_version' });
+        if (msg.includes('Version'))
+          return reply.code(400).send({ error: 'invalid_target_version' });
         if (msg.includes('not found')) return reply.code(404).send({ error: 'not_found' });
         throw err;
       }

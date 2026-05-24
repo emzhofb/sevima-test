@@ -142,7 +142,10 @@ export async function listWorkflows(
 }
 
 export async function deleteWorkflow(db: Db, tenantId: string, id: string): Promise<boolean> {
-  const result = await db.query('DELETE FROM workflows WHERE tenant_id = $1 AND id = $2', [tenantId, id]);
+  const result = await db.query('DELETE FROM workflows WHERE tenant_id = $1 AND id = $2', [
+    tenantId,
+    id,
+  ]);
   return (result.rowCount ?? 0) > 0;
 }
 

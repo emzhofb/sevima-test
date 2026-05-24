@@ -16,21 +16,36 @@ describe('Runs routes', () => {
   beforeEach(async () => {
     const clientQuery = vi.fn(async (sql: string, params?: unknown[]) => {
       if (sql.includes('INSERT INTO tenants')) {
-        return { rows: [{ id: tenantAId, slug: params?.[0], name: params?.[1], created_at: new Date() }] };
+        return {
+          rows: [{ id: tenantAId, slug: params?.[0], name: params?.[1], created_at: new Date() }],
+        };
       }
       if (sql.includes('INSERT INTO users')) {
-        return { rows: [{ id: 'user-xyz', tenant_id: params?.[0], email: params?.[1], password_hash: params?.[2], role: params?.[3], created_at: new Date() }] };
+        return {
+          rows: [
+            {
+              id: 'user-xyz',
+              tenant_id: params?.[0],
+              email: params?.[1],
+              password_hash: params?.[2],
+              role: params?.[3],
+              created_at: new Date(),
+            },
+          ],
+        };
       }
 
       if (sql.includes('SELECT * FROM runs WHERE tenant_id = $1 AND id = $2')) {
         if (params?.[1] === runId) {
           return {
-            rows: [{
-              id: runId,
-              tenant_id: tenantAId,
-              workflow_id: 'wf-1',
-              status: 'RUNNING',
-            }]
+            rows: [
+              {
+                id: runId,
+                tenant_id: tenantAId,
+                workflow_id: 'wf-1',
+                status: 'RUNNING',
+              },
+            ],
           };
         }
         return { rows: [] };
@@ -38,7 +53,7 @@ describe('Runs routes', () => {
 
       if (sql.includes('SELECT * FROM runs WHERE tenant_id = $1')) {
         return {
-          rows: [{ id: runId, tenant_id: tenantAId, status: 'RUNNING' }]
+          rows: [{ id: runId, tenant_id: tenantAId, status: 'RUNNING' }],
         };
       }
       if (sql.includes('SELECT COUNT(*)::text as count FROM runs')) {
@@ -47,7 +62,7 @@ describe('Runs routes', () => {
 
       if (sql.includes('SELECT * FROM step_runs')) {
         return {
-          rows: [{ id: 'step-run-1', run_id: runId, tenant_id: tenantAId }]
+          rows: [{ id: 'step-run-1', run_id: runId, tenant_id: tenantAId }],
         };
       }
 
@@ -57,6 +72,22 @@ describe('Runs routes', () => {
 
       if (sql.includes('UPDATE runs SET')) {
         return { rows: [{ id: runId, status: params?.[1] }] };
+      }
+
+      if (sql.includes('FROM logs')) {
+        return {
+          rows: [
+            {
+              id: 'log-1',
+              tenant_id: tenantAId,
+              run_id: runId,
+              step_id: 'step-1',
+              ts: new Date(),
+              level: 'INFO',
+              message: 'hello',
+            },
+          ],
+        };
       }
 
       if (sql.includes('INSERT INTO audit_logs')) {
@@ -171,7 +202,7 @@ describe('Runs routes', () => {
 
     it('returns 409 if run is already finished', async () => {
       const token = buildAuthToken(tenantAId, 'user-editor', 'EDITOR', jwtSecret);
-      
+
       // Override mock to throw IllegalStateTransitionError for this test
       app.db.connect = vi.fn().mockResolvedValue({
         query: vi.fn().mockImplementation(async (sql: string, params?: unknown[]) => {
@@ -212,6 +243,59 @@ describe('Runs routes', () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.json().items).toHaveLength(1);
+    });
+  });
+
+  describe('GET /runs/:id/logs', () => {
+    it('returns step execution logs with defaults', async () => {
+      const token = buildAuthToken(tenantAId, 'user-viewer', 'VIEWER', jwtSecret);
+
+      const res = await app.inject({
+        method: 'GET',
+        url: `/runs/${runId}/logs`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json().items).toHaveLength(1);
+      expect(res.json().items[0].message).toBe('hello');
+    });
+
+    it('filters by step_id and accepts query options', async () => {
+      const token = buildAuthToken(tenantAId, 'user-viewer', 'VIEWER', jwtSecret);
+
+      const res = await app.inject({
+        method: 'GET',
+        url: `/runs/${runId}/logs?step_id=step-1&page=1&pageSize=10`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json().items).toHaveLength(1);
+    });
+
+    it('returns 400 for invalid query parameters', async () => {
+      const token = buildAuthToken(tenantAId, 'user-viewer', 'VIEWER', jwtSecret);
+
+      const res = await app.inject({
+        method: 'GET',
+        url: `/runs/${runId}/logs?pageSize=invalid`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('returns 404 for nonexistent run', async () => {
+      const token = buildAuthToken(tenantAId, 'user-viewer', 'VIEWER', jwtSecret);
+
+      const res = await app.inject({
+        method: 'GET',
+        url: `/runs/nonexistent/logs`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(res.statusCode).toBe(404);
     });
   });
 });

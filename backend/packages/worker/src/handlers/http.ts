@@ -21,7 +21,11 @@ export async function executeHttp(spec: any, _runId: string, _db: any): Promise<
     let body: unknown = text;
     const contentType = response.headers.get('content-type') ?? '';
     if (contentType.includes('application/json')) {
-      try { body = JSON.parse(text); } catch { /* keep text */ }
+      try {
+        body = JSON.parse(text);
+      } catch {
+        /* keep text */
+      }
     }
 
     if (response.status >= 500) {

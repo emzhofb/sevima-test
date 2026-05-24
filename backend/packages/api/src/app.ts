@@ -6,6 +6,8 @@ import type { Redis } from 'ioredis';
 import { authRoutes } from './routes/auth.js';
 import { workflowRoutes } from './routes/workflows.js';
 import { runRoutes } from './routes/runs.js';
+import { scheduleRoutes } from './routes/schedules.js';
+import { webhookRoutes } from './routes/webhooks.js';
 
 export interface ApiAppOptions {
   db: Db;
@@ -39,7 +41,10 @@ export async function buildApp(opts: ApiAppOptions) {
   app.decorate('broker', broker);
 
   // Rate Limiter
-  const rateLimitGuard = createRateLimitMiddleware(opts.redis, opts.rateLimitConfig || { limit: 600, windowSec: 60 });
+  const rateLimitGuard = createRateLimitMiddleware(
+    opts.redis,
+    opts.rateLimitConfig || { limit: 600, windowSec: 60 },
+  );
   app.addHook('preHandler', async (request, reply) => {
     if (request.url.startsWith('/health') || request.url.startsWith('/auth/login')) return;
     return rateLimitGuard(request, reply);
@@ -52,6 +57,8 @@ export async function buildApp(opts: ApiAppOptions) {
   await app.register(authRoutes, { jwtSecret: opts.jwtSecret });
   await app.register(workflowRoutes);
   await app.register(runRoutes);
+  await app.register(scheduleRoutes);
+  await app.register(webhookRoutes);
 
   // Health check endpoint
   app.get('/health', async () => {

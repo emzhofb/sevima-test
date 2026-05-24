@@ -31,12 +31,14 @@ function makeMocks(runStatus: string = 'RUNNING', initialCompleted: string[] = [
 
     if (sql.includes('SELECT * FROM runs WHERE id = $1 FOR UPDATE')) {
       return {
-        rows: [{
-          id: params?.[0],
-          tenant_id: 'tenant-1',
-          version_id: 'version-1',
-          status: currentRunStatus,
-        }],
+        rows: [
+          {
+            id: params?.[0],
+            tenant_id: 'tenant-1',
+            version_id: 'version-1',
+            status: currentRunStatus,
+          },
+        ],
       };
     }
 

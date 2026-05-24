@@ -11,7 +11,7 @@ describe('scanTimeouts', () => {
     expect(count).toBe(2);
     expect(mockDb.query).toHaveBeenCalledOnce();
     const [sql] = mockDb.query.mock.calls[0] as [string];
-    expect(sql).toContain("TIMED_OUT");
+    expect(sql).toContain('TIMED_OUT');
   });
 
   it('returns 0 when no runs are timed out', async () => {

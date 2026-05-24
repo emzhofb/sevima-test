@@ -67,15 +67,31 @@ describe('PATCH /workflows/:id route', () => {
     const clientQuery = vi.fn(async (sql: string, params?: unknown[]) => {
       // INSERT tenant
       if (sql.includes('INSERT INTO tenants')) {
-        return { rows: [{ id: tenantAId, slug: params?.[0], name: params?.[1], created_at: new Date() }] };
+        return {
+          rows: [{ id: tenantAId, slug: params?.[0], name: params?.[1], created_at: new Date() }],
+        };
       }
       // INSERT user
       if (sql.includes('INSERT INTO users')) {
-        return { rows: [{ id: 'user-xyz', tenant_id: params?.[0], email: params?.[1], password_hash: params?.[2], role: params?.[3], created_at: new Date() }] };
+        return {
+          rows: [
+            {
+              id: 'user-xyz',
+              tenant_id: params?.[0],
+              email: params?.[1],
+              password_hash: params?.[2],
+              role: params?.[3],
+              created_at: new Date(),
+            },
+          ],
+        };
       }
 
       // UPDATE workflow (PATCH — increments current_version)
-      if (sql.includes('UPDATE workflows') && sql.includes('current_version = current_version + 1')) {
+      if (
+        sql.includes('UPDATE workflows') &&
+        sql.includes('current_version = current_version + 1')
+      ) {
         const tenantId = params?.[0] as string;
         const id = params?.[1] as string;
         const wf = workflowState.find((w) => w.tenant_id === tenantId && w.id === id);
