@@ -19,7 +19,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
     - Tambahkan custom ESLint rule yang menolak query SQL tanpa predikat `tenant_id` pada tabel domain (allow-list comment override)
     - Buat `.github/workflows/ci.yml` dengan jobs `lint`, `typecheck`, `test:unit` (placeholder)
     - _Requirements: 4.5, 8.6, 8.7_
-  - [ ] 1.3 Setup docker-compose foundation untuk PostgreSQL, Redis, ClickHouse
+  - [x] 1.3 Setup docker-compose foundation untuk PostgreSQL, Redis, ClickHouse
     - Tulis `docker-compose.yml` dengan service `postgres:15`, `redis:7`, `clickhouse:24-alpine`, masing-masing dengan healthcheck dan volume persistent
     - Tambahkan service `migrate` (one-shot) untuk menjalankan migration script
     - Sediakan `.env.example` dengan seluruh secret/config yang dibutuhkan
