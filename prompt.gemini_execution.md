@@ -43,8 +43,8 @@ Gunakan prompt ini saat ingin meminta AI bertindak sebagai Senior Developer untu
 Tolong review PR https://github.com/emzhofb/sevima-test/pull/{{PR_NUMBER}} via CLI sebagai senior developer.
 
 Langkah-langkah yang harus dilakukan secara berurutan:
-1. Fetch detail dan deskripsi PR dengan: gh pr view {{PR_NUMBER}} --repo emzhofb/kiro.bashocode.hirakata
-2. Fetch full diff PR dengan: gh api repos/emzhofb/kiro.bashocode.hirakata/pulls/{{PR_NUMBER}}/files
+1. Fetch detail dan deskripsi PR dengan: gh pr view {{PR_NUMBER}} --repo emzhofb/sevima-test
+2. Fetch full diff PR dengan: gh api repos/emzhofb/sevima-test/pulls/{{PR_NUMBER}}/files
 3. Checkout ke branch PR dan jalankan seluruh test suite:
    git fetch origin <branch-name>
    git checkout <branch-name>
@@ -56,9 +56,9 @@ Langkah-langkah yang harus dilakukan secara berurutan:
    - Temuan dikelompokkan per severity: 🔴 HIGH, 🟡 MEDIUM, 🟢 LOW
    - Setiap temuan berisi: deskripsi masalah, contoh kode reproduksi (jika ada), dan saran perbaikan konkret
    - Summary tabel di akhir
-6. Post komentar review ke GitHub dengan: gh pr comment {{PR_NUMBER}} --repo emzhofb/kiro.bashocode.hirakata --body-file <review_file>
+6. Post komentar review ke GitHub dengan: gh pr comment {{PR_NUMBER}} --repo emzhofb/sevima-test --body-file <review_file>
 7. Jika ternyata code nya sesuai dengan design.md, tidak ada temuan, dan semua test lulus, maka lanjutkan:
-   a. Merge PR dan hapus remote branch: gh pr merge {{PR_NUMBER}} --repo emzhofb/kiro.bashocode.hirakata --merge --delete-branch
+   a. Merge PR dan hapus remote branch: gh pr merge {{PR_NUMBER}} --repo emzhofb/sevima-test --merge --delete-branch
    b. Kembali ke main, pull, dan hapus local branch: git checkout main && git pull origin main && git branch -d <branch-name>
    c. Close github issue yang sudah selesai.
 
@@ -102,14 +102,14 @@ Gunakan prompt ini setelah junior developer mengupload fix-nya ke branch PR. Pro
 Tolong cek apakah fix dari junior sudah diupload di PR https://github.com/emzhofb/sevima-test/pull/{{PR_NUMBER}}.
 
 Lakukan langkah-langkah berikut secara berurutan:
-1. Cek commit terbaru di PR: gh api repos/emzhofb/kiro.bashocode.hirakata/pulls/{{PR_NUMBER}}/commits --jq '.[] | {sha: .sha[0:8], message: .commit.message, date: .commit.author.date}'
+1. Cek commit terbaru di PR: gh api repos/emzhofb/sevima-test/pulls/{{PR_NUMBER}}/commits --jq '.[] | {sha: .sha[0:8], message: .commit.message, date: .commit.author.date}'
 2. Fetch dan checkout ke branch PR, lalu pull perubahan terbaru:
    git fetch origin <branch-name> && git checkout <branch-name> && git pull origin <branch-name>
 3. Lihat diff commit fix dengan: git show <sha-fix> --stat && git show <sha-fix>
 4. Verifikasi semua issue dari review sebelumnya sudah diaddress.
 5. Jalankan seluruh test suite: cd frontend && npx vitest run --reporter=verbose
 6. Jika semua test pass dan semua 🔴 HIGH sudah difix:
-   a. Merge PR dan hapus remote branch: gh pr merge {{PR_NUMBER}} --repo emzhofb/kiro.bashocode.hirakata --merge --delete-branch
+   a. Merge PR dan hapus remote branch: gh pr merge {{PR_NUMBER}} --repo emzhofb/sevima-test --merge --delete-branch
    b. Kembali ke main, pull, dan hapus local branch: git checkout main && git pull origin main && git branch -d <branch-name>
    c. Close github issue yang sudah selesai.
 7. Laporkan hasilnya: jumlah test passed, daftar fix yang sudah diverifikasi, dan konfirmasi bahwa main sudah up-to-date.
