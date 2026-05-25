@@ -85,7 +85,7 @@ export function WorkflowDetailPage() {
         body: JSON.stringify({ input: {} }),
       }),
     onSuccess: (run) => {
-      navigate(`/runs/${run.id}`);
+      navigate(`/runs/${run.run_id}`);
     },
   });
 

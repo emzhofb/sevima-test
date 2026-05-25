@@ -40,27 +40,31 @@ export function WorkflowsPage() {
 
   // Mutation to create a new blank workflow for convenience
   const createMutation = useMutation({
-    mutationFn: () =>
-      api('/workflows', {
+    mutationFn: () => {
+      const name = `New Workflow ${Date.now().toString().slice(-4)}`;
+      return api('/workflows', {
         method: 'POST',
         body: JSON.stringify({
-          name: `New Workflow ${Date.now().toString().slice(-4)}`,
+          name,
           definition: {
+            name,
+            timeout_sec: 60,
             steps: [
               {
                 id: 'start',
-                name: 'Start Step',
                 type: 'HTTP',
                 depends_on: [],
                 config: {
                   url: 'https://httpbin.org/get',
                   method: 'GET',
                 },
+                continue_on_failure: false,
               },
             ],
           },
         }),
-      }),
+      });
+    },
     onSuccess: (newWf) => {
       queryClient.invalidateQueries({ queryKey: ['workflows'] });
       navigate(`/workflows/${newWf.id}`);
