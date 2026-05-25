@@ -28,3 +28,8 @@ yarn-error.log*
 # Build & Coverage
 dist/
 coverage/
+
+# pnpm store
+.pnpm-store/
+**/.pnpm-store/
+backend/.pnpm-store

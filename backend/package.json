@@ -23,6 +23,10 @@
     "seed": "tsx scripts/seed.ts",
     "cleanup-logs": "tsx scripts/cleanup-logs.ts"
   },
+  "dependencies": {
+    "node-pg-migrate": "^8.0.4",
+    "pg": "^8.21.0"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@flowforge/auth": "workspace:*",
@@ -33,8 +37,6 @@
     "@vitest/coverage-v8": "^4.1.7",
     "eslint": "^10.4.0",
     "eslint-config-prettier": "^10.1.8",
-    "node-pg-migrate": "^8.0.4",
-    "pg": "^8.21.0",
     "prettier": "^3.8.3",
     "typescript": "^5.3.3",
     "typescript-eslint": "^8.59.4",

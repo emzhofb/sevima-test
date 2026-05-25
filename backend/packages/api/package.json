@@ -2,6 +2,15 @@
   "name": "@flowforge/api",
   "version": "0.0.1",
   "private": true,
+  "type": "module",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "dist/index.js",
   "dependencies": {
     "@flowforge/auth": "workspace:*",
     "@flowforge/parser": "workspace:*",
@@ -13,7 +22,6 @@
     "openai": "^4.55.0",
     "zod": "^3.23.8"
   },
-  "main": "src/index.ts",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
