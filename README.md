@@ -36,8 +36,6 @@ open http://localhost:5173
 ### 1. Logging In
 Once the services are up and running, open [http://localhost:5173](http://localhost:5173) in your browser. You will be greeted by the login page:
 
-![Login Preview](docs/images/login_preview.png)
-
 Fill in the credentials as follows:
 - **Organization Slug:** `acme`
 - **Email:** `admin@acme.com`
@@ -45,8 +43,6 @@ Fill in the credentials as follows:
 
 ### 2. Creating and Editing Workflows
 After logging in, you will see the dashboard with your workflows:
-
-![Dashboard Preview](docs/images/dashboard_preview.png)
 
 To create a new workflow:
 1. Click **+ Create Workflow** on the workflows list page.
