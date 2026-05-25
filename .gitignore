@@ -32,3 +32,4 @@ coverage/
 # pnpm store
 .pnpm-store/
 **/.pnpm-store/
+backend/.pnpm-store
